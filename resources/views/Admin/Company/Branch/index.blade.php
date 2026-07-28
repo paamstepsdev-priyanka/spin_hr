@@ -55,7 +55,7 @@
                             <img src="{{ asset('storage/' . $company->logo) }}" alt="{{ $company->name }}" class="rounded mb-2" style="max-height: 50px; max-width: 100%; object-fit: contain;">
                         @endif
                         <h6 class="fw-bold mb-1 text-body">{{ $company->name }}</h6>
-                        <span class="badge {{ strtolower($company->status) === 'active' ? 'bg-warning text-dark' : 'bg-secondary' }} px-2 py-1 mb-2">
+                        <span class="badge {{ strtolower($company->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger' }} px-2 py-1 mb-2">
                             {{ ucfirst($company->status) }}
                         </span>
 

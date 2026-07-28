@@ -20,29 +20,21 @@ class DepartmentController extends Controller
 
             return DataTables::of($departments)
                 ->addIndexColumn()
-                ->addColumn('action', function ($row) {
-                    $editUrl = route('departments.edit', $row->id);
-                    $deleteUrl = route('departments.destroy', $row->id);
-                    $csrf = csrf_field();
-                    $method = method_field('DELETE');
-
+                ->addColumn('edit', function ($row) {
                     return '<div class="btn-group btn-group-sm" role="group">
-                                <a href="' . $editUrl . '" class="btn btn-xs btn-outline-primary py-0 px-2" title="Edit">Edit</a>
-                                <form action="' . $deleteUrl . '" method="POST" class="d-inline" onsubmit="return confirm(\'Are you sure you want to delete this department?\');">
-                                    ' . $csrf . '
-                                    ' . $method . '
-                                    <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-2" title="Delete">Del</button>
-                                </form>
+                                <a href="' . route('departments.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
+                                    Edit
+                                </a>
                             </div>';
                 })
                 ->editColumn('status', function ($row) {
-                    $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-secondary';
+                    $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger';
                     return '<span class="badge ' . $badgeClass . ' px-2 py-1">' . ucfirst($row->status) . '</span>';
                 })
                 ->editColumn('created_at', function ($row) {
                     return $row->created_at ? $row->created_at->format('d/m/Y H:i') : 'N/A';
                 })
-                ->rawColumns(['action', 'status'])
+                ->rawColumns(['edit', 'status'])
                 ->make(true);
         }
 

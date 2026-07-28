@@ -23,7 +23,7 @@ class CompanyController extends Controller
             return DataTables::of($companies)
                 ->addIndexColumn()
                 ->addColumn('branches', function ($row) {
-                    return '<a href="' . route('admin.company.branches.index', $row->id) . '" class="btn btn-xs btn-outline-info py-0 px-2 fw-semibold" title="Branches">
+                    return '<a href="' . route('admin.company.branches.index', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold" title="Branches">
                                 Branches (' . $row->branches_count . ')
                             </a>';
                 })
@@ -35,7 +35,7 @@ class CompanyController extends Controller
                             </div>';
                 })
                 ->editColumn('status', function ($row) {
-                    $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-secondary';
+                    $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger';
                     return '<span class="badge ' . $badgeClass . ' px-2 py-1">' . ucfirst($row->status) . '</span>';
                 })
                 ->editColumn('logo', function ($row) {
@@ -45,8 +45,7 @@ class CompanyController extends Controller
                     return '<span class="badge bg-light text-muted border">N/A</span>';
                 })
                 ->editColumn('pf_applicable', function ($row) {
-                    $badgeClass = strtoupper($row->pf_applicable) === 'YES' || $row->pf_applicable === 'Yes' ? 'bg-success' : 'bg-light text-muted border';
-                    return '<span class="badge ' . $badgeClass . '">' . $row->pf_applicable . '</span>';
+                    return $row->pf_applicable;
                 })
                 ->editColumn('email', function ($row) {
                     return '<a href="mailto:' . e($row->email) . '" class="text-decoration-none text-body">' . e($row->email) . '</a>';
@@ -79,7 +78,7 @@ class CompanyController extends Controller
             'pf_applicable' => 'required',
             'status' => 'required',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ],[
+        ], [
             'name.required' => 'Company name is required.',
             'name.unique' => 'Company name already exists.',
             'email.required' => 'Email is required.',
@@ -127,7 +126,7 @@ class CompanyController extends Controller
         }
 
         return redirect()->route('companies.index')
-                         ->with('success', 'Company created successfully.');
+            ->with('success', 'Company created successfully.');
     }
 
     /**
@@ -145,13 +144,13 @@ class CompanyController extends Controller
             'email' => 'required|email|unique:companies,email,' . $company->id,
             'contact_no' => 'required|digits:10|unique:companies,contact_no,' . $company->id,
             'address_line1' => 'required',
-            'city' => 'required',   
+            'city' => 'required',
             'state' => 'required',
             'zip_code' => 'required',
             'pf_applicable' => 'required',
             'status' => 'required',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ],[
+        ], [
             'name.required' => 'Company name is required.',
             'name.unique' => 'Company name already exists.',
             'email.required' => 'Email is required.',
@@ -200,6 +199,6 @@ class CompanyController extends Controller
         }
 
         return redirect()->route('companies.index')
-                         ->with('success', 'Company updated successfully.');
+            ->with('success', 'Company updated successfully.');
     }
 }

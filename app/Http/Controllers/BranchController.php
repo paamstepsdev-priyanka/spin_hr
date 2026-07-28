@@ -28,7 +28,7 @@ class BranchController extends Controller
                             </div>';
                 })
                 ->editColumn('status', function ($row) {
-                    $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-secondary';
+                    $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger';
                     return '<span class="badge ' . $badgeClass . ' px-2 py-1">' . ucfirst($row->status) . '</span>';
                 })
                 ->editColumn('email', function ($row) {

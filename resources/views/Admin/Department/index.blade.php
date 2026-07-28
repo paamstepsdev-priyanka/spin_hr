@@ -40,10 +40,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="fw-bold text-center" style="width: 40px;">#</th>
-                                <th scope="col" class="fw-bold">Department Name</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 100px;">Status</th>
-                                <th scope="col" class="fw-bold" style="width: 160px;">Created At</th>
-                                <th scope="col" class="fw-bold text-center pe-2" style="width: 120px;">Actions</th>
+                                <th scope="col" class="fw-bold text-center pe-2" style="width: 80px;">Edit</th>
+                                <th scope="col" class="fw-bold">Department Name</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,10 +66,9 @@
             ajax: "{{ route('departments.index') }}",
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
-                { data: 'name', name: 'name', className: 'fw-semibold text-body' },
+                { data: 'edit', name: 'edit', orderable: false, searchable: false, className: 'text-center pe-2' },
                 { data: 'status', name: 'status', className: 'text-center' },
-                { data: 'created_at', name: 'created_at' },
-                { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center pe-2' },
+                { data: 'name', name: 'name', className: 'fw-semibold text-body' },
             ],
             language: {
                 search: "Search:",

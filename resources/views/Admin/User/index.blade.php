@@ -64,7 +64,7 @@
                                         </a>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge {{ $user->status === 'active' ? 'bg-warning text-dark' : 'bg-secondary' }} px-2 py-1">
+                                        <span class="badge {{ $user->status === 'active' ? 'bg-warning text-dark' : 'bg-danger' }} px-2 py-1">
                                             {{ ucfirst($user->status) }}
                                         </span>
                                     </td>
