@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Validator;
 
 class DepartmentController extends Controller
 {
@@ -54,30 +54,30 @@ class DepartmentController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|max:255|unique:departments,name',
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|unique:departments,name',
             'status' => 'required',
-        ], [
-            'name.required' => 'Department name is required.',
-            'name.unique' => 'Department name already exists.',
-            'status.required' => 'Select Status.',
         ]);
 
-        $department = new Department();
-        $department->name = $request->name;
-        $department->status = $request->status;
-        $department->save();
-
-        if ($request->ajax() || $request->wantsJson()) {
+        if ($validator->fails()) {
             return response()->json([
-                'status' => true,
-                'message' => 'Department created successfully.',
-                'redirect' => route('departments.index')
-            ]);
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        return redirect()->route('departments.index')
-                         ->with('success', 'Department created successfully.');
+        Department::create([
+            'name' => $request->name,
+            'status' => $request->status,
+        ]);
+
+        session()->flash('success', 'Department created successfully.');
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Department created successfully.',
+            'redirect' => route('departments.index')
+        ]);
     }
 
     /**
@@ -93,46 +93,30 @@ class DepartmentController extends Controller
      */
     public function update(Request $request, Department $department)
     {
-        $request->validate([
-            'name' => 'required|max:255|unique:departments,name,' . $department->id,
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|unique:departments,name,' . $department->id,
             'status' => 'required',
-        ], [
-            'name.required' => 'Department name is required.',
-            'name.unique' => 'Department name already exists.',
-            'status.required' => 'Select Status.',
         ]);
 
-        $department->name = $request->name;
-        $department->status = $request->status;
-        $department->save();
-
-        if ($request->ajax() || $request->wantsJson()) {
+        if ($validator->fails()) {
             return response()->json([
-                'status' => true,
-                'message' => 'Department updated successfully.',
-                'redirect' => route('departments.index')
-            ]);
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        return redirect()->route('departments.index')
-                         ->with('success', 'Department updated successfully.');
-    }
+        $department->update([
+            'name' => $request->name,
+            'status' => $request->status,
+        ]);
 
-    /**
-     * Remove the specified department from storage.
-     */
-    public function destroy(Department $department)
-    {
-        $department->delete();
-
-        if (request()->ajax() || request()->wantsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Department deleted successfully.',
-                'redirect' => route('departments.index')
-            ]);
-        }
-
-        return redirect()->route('departments.index')->with('success', 'Department deleted successfully.');
+        session()->flash('success', 'Department updated successfully.');
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Department updated successfully.',
+            'redirect' => route('departments.index')
+        ]);
     }
 }

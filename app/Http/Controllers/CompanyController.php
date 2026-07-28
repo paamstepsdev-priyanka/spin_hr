@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -99,17 +97,7 @@ class CompanyController extends Controller
         ]);
 
         $company = new Company();
-
-        $company->name = $request->name;
-        $company->email = $request->email;
-        $company->contact_no = $request->contact_no;
-        $company->address_line1 = $request->address_line1;
-        $company->address_line2 = $request->address_line2;
-        $company->city = $request->city;
-        $company->state = $request->state;
-        $company->zip_code = $request->zip_code;
-        $company->pf_applicable = $request->pf_applicable;
-        $company->status = $request->status;
+        $company->fill($request->all());
 
         if ($request->hasFile('logo')) {
             $company->logo = $request->file('logo')->store('companies', 'public');
@@ -117,16 +105,12 @@ class CompanyController extends Controller
 
         $company->save();
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Company created successfully.',
-                'redirect' => route('companies.index')
-            ]);
-        }
-
-        return redirect()->route('companies.index')
-            ->with('success', 'Company created successfully.');
+        session()->flash('success', 'Company created successfully.');
+        return response()->json([
+            'status' => true,
+            'message' => 'Company created successfully.',
+            'redirect' => route('companies.index')
+        ]);
     }
 
     /**
@@ -170,16 +154,7 @@ class CompanyController extends Controller
             'logo.max' => 'Logo size must be less than 2MB.',
         ]);
 
-        $company->name = $request->name;
-        $company->email = $request->email;
-        $company->contact_no = $request->contact_no;
-        $company->address_line1 = $request->address_line1;
-        $company->address_line2 = $request->address_line2;
-        $company->city = $request->city;
-        $company->state = $request->state;
-        $company->zip_code = $request->zip_code;
-        $company->pf_applicable = $request->pf_applicable;
-        $company->status = $request->status;
+        $company->fill($request->all());
 
         if ($request->hasFile('logo')) {
             if ($company->logo && Storage::disk('public')->exists($company->logo)) {
@@ -190,15 +165,11 @@ class CompanyController extends Controller
 
         $company->save();
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Company updated successfully.',
-                'redirect' => route('companies.index')
-            ]);
-        }
-
-        return redirect()->route('companies.index')
-            ->with('success', 'Company updated successfully.');
+        session()->flash('success', 'Company updated successfully.');
+        return response()->json([
+            'status' => true,
+            'message' => 'Company updated successfully.',
+            'redirect' => route('companies.index')
+        ]);
     }
 }

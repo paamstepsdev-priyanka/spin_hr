@@ -80,28 +80,16 @@ class BranchController extends Controller
 
         $branch = new Branch();
         $branch->company_id = $company->id;
-        $branch->name = $request->name;
-        $branch->email = $request->email;
-        $branch->contact_no = $request->contact_no;
-        $branch->address_line1 = $request->address_line1;
-        $branch->address_line2 = $request->address_line2;
-        $branch->city = $request->city;
-        $branch->state = $request->state;
-        $branch->zip_code = $request->zip_code;
-        $branch->status = $request->status;
+        $branch->fill($request->all());
         $branch->created_by = auth()->id();
         $branch->save();
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Branch created successfully.',
-                'redirect' => route('admin.company.branches.index', $company->id)
-            ]);
-        }
-
-        return redirect()->route('admin.company.branches.index', $company->id)
-            ->with('success', 'Branch created successfully.');
+        session()->flash('success', 'Branch created successfully.');
+        return response()->json([
+            'status' => true,
+            'message' => 'Branch created successfully.',
+            'redirect' => route('admin.company.branches.index', $company->id)
+        ]);
     }
 
     /**
@@ -141,47 +129,16 @@ class BranchController extends Controller
             'status.required' => 'Select Status.',
         ]);
 
-        $branch->name = $request->name;
-        $branch->email = $request->email;
-        $branch->contact_no = $request->contact_no;
-        $branch->address_line1 = $request->address_line1;
-        $branch->address_line2 = $request->address_line2;
-        $branch->city = $request->city;
-        $branch->state = $request->state;
-        $branch->zip_code = $request->zip_code;
-        $branch->status = $request->status;
+        $branch->fill($request->all());
+
         $branch->updated_by = auth()->id();
         $branch->save();
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Branch updated successfully.',
-                'redirect' => route('admin.company.branches.index', $company->id)
-            ]);
-        }
-
-        return redirect()->route('admin.company.branches.index', $company->id)
-            ->with('success', 'Branch updated successfully.');
-    }
-
-    /**
-     * Remove the specified branch from storage.
-     */
-    public function destroy(Request $request, Company $company, Branch $branch)
-    {
-        $branch->deleted_by = auth()->id();
-        $branch->save();
-        $branch->delete();
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'status' => true,
-                'message' => 'Branch deleted successfully.'
-            ]);
-        }
-
-        return redirect()->route('admin.company.branches.index', $company->id)
-            ->with('success', 'Branch deleted successfully.');
+        session()->flash('success', 'Branch updated successfully.');
+        return response()->json([
+            'status' => true,
+            'message' => 'Branch updated successfully.',
+            'redirect' => route('admin.company.branches.index', $company->id)
+        ]);
     }
 }

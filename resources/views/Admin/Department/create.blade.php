@@ -63,7 +63,6 @@ $(document).ready(function() {
     $('#department-form').on('submit', function(e) {
         e.preventDefault();
 
-        // Clear all previous errors and validation styling
         $('.text-danger.small').html('');
         $('.form-control, .form-select').removeClass('is-invalid');
         $('#alert-container').html('');
@@ -82,7 +81,7 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                if (response.status) {
+                if (response.status === 'success' || response.status === true) {
                     window.location.href = response.redirect;
                 }
             },
