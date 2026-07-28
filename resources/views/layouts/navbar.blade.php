@@ -29,12 +29,12 @@
             </a>
         </li>
 
-        <li>
+        {{-- <li>
             <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i>
                 <span>Users</span>
             </a>
-        </li>
+        </li> --}}
 
     </ul>
 

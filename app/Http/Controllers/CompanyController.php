@@ -69,9 +69,9 @@ class CompanyController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|max:255',
+            'name' => 'required|max:255|unique:companies,name',
             'email' => 'required|email|unique:companies,email',
-            'contact_no' => 'required|digits:10',
+            'contact_no' => 'required|digits:10|unique:companies,contact_no',
             'address_line1' => 'required',
             'city' => 'required',
             'state' => 'required',
@@ -81,10 +81,12 @@ class CompanyController extends Controller
             'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ],[
             'name.required' => 'Company name is required.',
+            'name.unique' => 'Company name already exists.',
             'email.required' => 'Email is required.',
             'email.email' => 'Enter a valid email.',
             'email.unique' => 'Email already exists.',
             'contact_no.required' => 'Contact number is required.',
+            'contact_no.unique' => 'Contact number already exists.',
             'contact_no.digits' => 'Contact number must be 10 digits.',
             'address_line1.required' => 'Address is required.',
             'city.required' => 'City is required.',
@@ -139,11 +141,11 @@ class CompanyController extends Controller
     public function update(Request $request, Company $company)
     {
         $request->validate([
-            'name' => 'required|max:255',
+            'name' => 'required|max:255|unique:companies,name,' . $company->id,
             'email' => 'required|email|unique:companies,email,' . $company->id,
-            'contact_no' => 'required|digits:10',
+            'contact_no' => 'required|digits:10|unique:companies,contact_no,' . $company->id,
             'address_line1' => 'required',
-            'city' => 'required',
+            'city' => 'required',   
             'state' => 'required',
             'zip_code' => 'required',
             'pf_applicable' => 'required',
@@ -151,10 +153,12 @@ class CompanyController extends Controller
             'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ],[
             'name.required' => 'Company name is required.',
+            'name.unique' => 'Company name already exists.',
             'email.required' => 'Email is required.',
             'email.email' => 'Enter a valid email.',
             'email.unique' => 'Email already exists.',
             'contact_no.required' => 'Contact number is required.',
+            'contact_no.unique' => 'Contact number already exists.',
             'contact_no.digits' => 'Contact number must be 10 digits.',
             'address_line1.required' => 'Address is required.',
             'city.required' => 'City is required.',

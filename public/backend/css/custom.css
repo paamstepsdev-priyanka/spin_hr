@@ -99,3 +99,12 @@
     --cui-btn-disabled-bg: #d23973;
     --cui-btn-disabled-border-color: #d23973;
 }
+
+.page-link.active,
+.active>.page-link {
+    z-index: 3;
+    color: var(--cui-pagination-active-color);
+    background-color: #cf336d;
+    border-color: #cf336d;
+}
+

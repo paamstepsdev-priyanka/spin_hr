@@ -41,34 +41,76 @@
 
         <div id="alert-container"></div>
 
-        <!-- Main Content Card -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-3">
-                <!-- Toolbar -->
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-1 text-muted" onclick="window.print()">Print</button>
+        <!-- Content Layout: Left col-lg-9 (Branches Table), Right col-lg-3 (Company Card) -->
+        <div class="row g-3">
+
+             <!-- Right Side: Company UI Card (col-lg-3) -->
+            <div class="col-lg-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-body-tertiary border-0 py-2 px-3">
+                        <h6 class="mb-0 fw-bold text-body small">Company Info</h6>
+                    </div>
+                    <div class="card-body p-3 text-center">
+                        @if($company->logo)
+                            <img src="{{ asset('storage/' . $company->logo) }}" alt="{{ $company->name }}" class="rounded mb-2" style="max-height: 50px; max-width: 100%; object-fit: contain;">
+                        @endif
+                        <h6 class="fw-bold mb-1 text-body">{{ $company->name }}</h6>
+                        <span class="badge {{ strtolower($company->status) === 'active' ? 'bg-warning text-dark' : 'bg-secondary' }} px-2 py-1 mb-2">
+                            {{ ucfirst($company->status) }}
+                        </span>
+
+                        <hr class="my-2 text-muted opacity-25">
+
+                        <div class="text-start small">
+                            <div class="mb-2">
+                                <span class="text-muted d-block small fw-semibold">Email</span>
+                                <span class="text-body text-break">{{ $company->email }}</span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="text-muted d-block small fw-semibold">Contact No</span>
+                                <span class="text-body">{{ $company->contact_no }}</span>
+                            </div>
+                            @if($company->city || $company->state)
+                            <div class="mb-1">
+                                <span class="text-muted d-block small fw-semibold">Location</span>
+                                <span class="text-body">{{ implode(', ', array_filter([$company->city, $company->state])) }}</span>
+                            </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
+            </div>
+            <!-- Left Side: Branches Table (col-lg-9) -->
+            <div class="col-lg-9">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-3">
+                        <!-- Toolbar -->
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-1 text-muted" onclick="window.print()">Print</button>
+                            </div>
+                        </div>
 
-                <!-- Branches Table -->
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100" id="branches-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col" class="fw-bold text-center" style="width: 40px;">#</th>
-                                <th scope="col" class="fw-bold text-center pe-2" style="width: 120px;">Actions</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 80px;">Status</th>
-                                <th scope="col" class="fw-bold">Branch Name</th>
-                                <th scope="col" class="fw-bold">Email</th>
-                                <th scope="col" class="fw-bold">Contact No</th>
-                                <th scope="col" class="fw-bold">City</th>
-                                <th scope="col" class="fw-bold">State</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
+                        <!-- Branches Table -->
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100" id="branches-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="fw-bold text-center" style="width: 40px;">#</th>
+                                        <th scope="col" class="fw-bold text-center pe-2" style="width: 80px;">Edit</th>
+                                        <th scope="col" class="fw-bold text-center" style="width: 80px;">Status</th>
+                                        <th scope="col" class="fw-bold">Branch Name</th>
+                                        <th scope="col" class="fw-bold">Email</th>
+                                        <th scope="col" class="fw-bold">Contact No</th>
+                                        <th scope="col" class="fw-bold">City</th>
+                                        <th scope="col" class="fw-bold">State</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -98,30 +140,6 @@
             language: {
                 search: "Search:",
                 lengthMenu: "Show _MENU_ entries"
-            }
-        });
-
-        $(document).on('click', '.btn-delete-branch', function(e) {
-            e.preventDefault();
-            let deleteUrl = $(this).data('url');
-
-            if (confirm('Are you sure you want to delete this branch?')) {
-                $.ajax({
-                    url: deleteUrl,
-                    type: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function(response) {
-                        if (response.status) {
-                            $('#alert-container').html('<div class="alert alert-success alert-dismissible fade show" role="alert">' + response.message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
-                            table.ajax.reload(null, false);
-                        }
-                    },
-                    error: function(xhr) {
-                        $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert">Error deleting branch. Please try again.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
-                    }
-                });
             }
         });
     });

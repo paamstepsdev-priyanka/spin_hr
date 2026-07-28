@@ -22,12 +22,9 @@ class BranchController extends Controller
                 ->addIndexColumn()
                 ->addColumn('edit', function ($row) use ($company) {
                     return '<div class="btn-group btn-group-sm" role="group">
-                                <a href="' . route('admin.company.branches.edit', [$company->id, $row->id]) . '" class="btn btn-xs btn-outline-primary py-0 px-2" title="Edit">
+                                <a href="' . route('admin.company.branches.edit', [$company->id, $row->id]) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
                                     Edit
                                 </a>
-                                <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 btn-delete-branch" data-url="' . route('admin.company.branches.destroy', [$company->id, $row->id]) . '" title="Delete">
-                                    Delete
-                                </button>
                             </div>';
                 })
                 ->editColumn('status', function ($row) {
