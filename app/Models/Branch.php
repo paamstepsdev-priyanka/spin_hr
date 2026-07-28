@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Company extends Model
+class Branch extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -15,8 +17,8 @@ class Company extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'company_id',
         'name',
-        'logo',
         'email',
         'contact_no',
         'address_line1',
@@ -24,16 +26,17 @@ class Company extends Model
         'city',
         'state',
         'zip_code',
-        'pf_applicable',
         'status',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     /**
-     * Get the branches for the company.
+     * Get the company that owns the branch.
      */
-    public function branches()
+    public function company(): BelongsTo
     {
-        return $this->hasMany(Branch::class);
+        return $this->belongsTo(Company::class);
     }
 }
-

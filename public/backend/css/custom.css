@@ -1,0 +1,101 @@
+/* Custom Application Styles */
+.wrapper {
+    padding-left: 260px;
+    transition: padding-left .15s ease-in-out;
+}
+
+@media (max-width: 767.98px) {
+    .wrapper {
+        padding-left: 0;
+    }
+}
+
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1030;
+    background: linear-gradient(180deg, #d93974, #810734);
+    color: #fff;
+}
+
+.sidebar-header {
+    padding: 20px;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    border-bottom: none !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.sidebar-header h4 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    width: 100%;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 40px 0px;
+    margin: 12px;
+}
+
+.sidebar-menu li {
+    margin: 6px 12px;
+}
+
+.sidebar-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: #fff;
+    border-radius: 10px;
+    transition: .3s;
+}
+
+.sidebar-menu li a:hover {
+    background: rgba(255, 255, 255, .12);
+}
+
+.sidebar-menu li a.active {
+    background: #ffffff;
+    color: #283E51;
+    font-weight: 600;
+}
+
+.menu-title {
+    color: #cfcfcf;
+    font-size: 12px;
+    text-transform: uppercase;
+    padding: 15px 25px 8px;
+    letter-spacing: 1px;
+}
+
+.sidebar-menu i {
+    font-size: 18px;
+}
+
+.btn-primary {
+    --cui-btn-color: #fff;
+    --cui-btn-bg: #d23973;
+    --cui-btn-border-color: #d23973;
+    --cui-btn-hover-color: #fff;
+    --cui-btn-hover-bg: #e39fb9;
+    --cui-btn-hover-border-color: #e39fb9;
+    --cui-btn-focus-shadow-rgb: 113.5, 111.35, 220.15;
+    --cui-btn-active-color: #fff;
+    --cui-btn-active-bg: #e39fb9;
+    --cui-btn-active-border-color: #e39fb9;
+    --cui-btn-active-shadow: inset 0 3px 5px rgba(8, 10, 12, 0.125);
+    --cui-btn-disabled-color: #fff;
+    --cui-btn-disabled-bg: #d23973;
+    --cui-btn-disabled-border-color: #d23973;
+}

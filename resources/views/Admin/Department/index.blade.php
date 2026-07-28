@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Companies')
+@section('title', 'Departments')
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
@@ -12,12 +12,12 @@
         <!-- Header Banner Block -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body bg-body-tertiary rounded p-3 d-flex justify-content-between align-items-center">
-                <h4 class="mb-0 fw-bold text-body">Companies</h4>
-                <a href="{{ route('companies.create') }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
+                <h4 class="mb-0 fw-bold text-body">Departments</h4>
+                <a href="{{ route('departments.create') }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
                     </svg>
-                    Add Company
+                    Add Department
                 </a>
             </div>
         </div>
@@ -34,22 +34,16 @@
                     </div>
                 </div>
 
-                <!-- Companies Table formatted dynamically via DataTables & Controller editColumn -->
+                <!-- Departments Table -->
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100" id="companies-table">
+                    <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100" id="departments-table">
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="fw-bold text-center" style="width: 40px;">#</th>
-                                <th scope="col" class="fw-bold text-center pe-2" style="width: 80px;">Edit</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 100px;">Branches</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 80px;">Status</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 60px;">Logo</th>
-                                <th scope="col" class="fw-bold">Company Name</th>
-                                <th scope="col" class="fw-bold">Email</th>
-                                <th scope="col" class="fw-bold">Contact No</th>
-                                <th scope="col" class="fw-bold">City</th>
-                                <th scope="col" class="fw-bold">State</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 90px;">PF Applicable</th>
+                                <th scope="col" class="fw-bold">Department Name</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 100px;">Status</th>
+                                <th scope="col" class="fw-bold" style="width: 160px;">Created At</th>
+                                <th scope="col" class="fw-bold text-center pe-2" style="width: 120px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,22 +61,16 @@
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#companies-table').DataTable({
+        $('#departments-table').DataTable({
             processing: true,
             serverSide: true,
-            ajax: "{{ route('companies.index') }}",
+            ajax: "{{ route('departments.index') }}",
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
-                { data: 'edit', name: 'edit', orderable: false, searchable: false, className: 'text-center pe-2' },
-                { data: 'branches', name: 'branches', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'name', name: 'name', className: 'fw-semibold text-body' },
                 { data: 'status', name: 'status', className: 'text-center' },
-                { data: 'logo', name: 'logo', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'name', name: 'name', className: 'fw-semibold' },
-                { data: 'email', name: 'email' },
-                { data: 'contact_no', name: 'contact_no' },
-                { data: 'city', name: 'city' },
-                { data: 'state', name: 'state' },
-                { data: 'pf_applicable', name: 'pf_applicable', className: 'text-center' },
+                { data: 'created_at', name: 'created_at' },
+                { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center pe-2' },
             ],
             language: {
                 search: "Search:",

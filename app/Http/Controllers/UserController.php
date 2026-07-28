@@ -17,8 +17,8 @@ class UserController extends Controller
      */
     public function index(): View
     {
-        $users = User::latest()->paginate(10);
-        return view('admin.users.index', compact('users'));
+        $users = User::where('email', '!=', 'admin@gmail.com')->orderBy('id', 'desc')->paginate(10);
+        return view('Admin.User.index', compact('users'));
     }
 
     /**
@@ -26,7 +26,7 @@ class UserController extends Controller
      */
     public function create(): View
     {
-        return view('admin.users.create');
+        return view('Admin.User.create');
     }
 
     /**
@@ -55,7 +55,7 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
-        return view('admin.users.edit', compact('user'));
+        return view('Admin.User.edit', compact('user'));
     }
 
     /**

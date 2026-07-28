@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard') - SpinHR</title>
     
     <!-- Vendors styles -->
@@ -12,54 +13,17 @@
     
     <!-- Main styles for application -->
     <link href="{{ asset('backend/css/style.css') }}" rel="stylesheet">
-    <link href="{{ asset('backend/css/examples.css') }}" rel="stylesheet">
+    <!-- Custom & Vendor icons styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="{{ asset('backend/css/custom.css') }}" rel="stylesheet">
     
     <script src="{{ asset('backend/js/config.js') }}"></script>
     <script src="{{ asset('backend/js/color-modes.js') }}"></script>
     @stack('styles')
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
-        <div class="sidebar-header border-bottom">
-            <div class="sidebar-brand me-auto">
-                <span class="fs-4 fw-bold text-white px-2">SpinHR Admin</span>
-            </div>
-            <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
-        </div>
-        <ul class="sidebar-nav" data-coreui="navigation" data-simplebar>
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                        <path fill="var(--ci-primary-color, currentcolor)" d="M425.706 142.294A240 240 0 0 0 16 312v88h144v-32H48v-56c0-114.691 93.309-208 208-208s208 93.309 208 208v56H352v32h144v-88a238.43 238.43 0 0 0-70.294-169.706" class="ci-primary" />
-                        <path fill="var(--ci-primary-color, currentcolor)" d="M80 264h32v32H80zm160-136h32v32h-32zm-104 40h32v32h-32zm264 96h32v32h-32zm-102.778 71.1 69.2-144.173-28.85-13.848-69.183 144.135a64.141 64.141 0 1 0 28.833 13.886M256 416a32 32 0 1 1 32-32 32.036 32.036 0 0 1-32 32" class="ci-primary" />
-                    </svg>
-                    Dashboard
-                </a>
-            </li>
-            <li class="nav-title">Management</li>
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('companies.*') ? 'active' : '' }}" href="{{ route('companies.index') }}">
-                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                        <path fill="var(--ci-primary-color, currentcolor)" d="M432 16H80a16 16 0 0 0-16 16v448a16 16 0 0 0 16 16h352a16 16 0 0 0 16-16V32a16 16 0 0 0-16-16zm-16 448H96V48h320z" class="ci-primary"/>
-                        <path fill="var(--ci-primary-color, currentcolor)" d="M128 96h64v64h-64zm128 0h64v64h-64zm128 0h64v64h-64zM128 224h64v64h-64zm128 0h64v64h-64zm128 0h64v64h-64zM128 352h64v64h-64zm128 0h64v64h-64zm128 0h64v64h-64z" class="ci-primary"/>
-                    </svg>
-                    Companies
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
-                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                        <path fill="var(--ci-primary-color, currentcolor)" d="M256 256a112 112 0 1 0-112-112 112.13 112.13 0 0 0 112 112zm0-192a80 80 0 1 1-80 80 80.09 80.09 0 0 1 80-80zM400 464H112a48.05 48.05 0 0 1-48-48v-32a112.13 112.13 0 0 1 112-112h160a112.13 112.13 0 0 1 112 112v32a48.05 48.05 0 0 1-48 48zm-224-160a80.09 80.09 0 0 0-80 80v32a16.02 16.02 0 0 0 16 16h288a16.02 16.02 0 0 0 16-16v-32a80.09 80.09 0 0 0-80-80z" class="ci-primary"/>
-                    </svg>
-                    User Management
-                </a>
-            </li>
-        </ul>
-        <div class="sidebar-footer border-top d-none d-md-flex">
-            <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
-        </div>
-    </div>
+    <!-- Sidebar Navigation -->
+    @include('layouts.navbar')
 
     <!-- Main Wrapper -->
     <div class="wrapper d-flex flex-column min-vh-100">
