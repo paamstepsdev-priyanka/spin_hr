@@ -48,6 +48,11 @@ class EmployeeController extends Controller
                 ->addColumn('department_name', function ($row) {
                     return $row->department ? e($row->department->name) : '<span class="text-muted">N/A</span>';
                 })
+                ->addColumn('salary', function ($row) {
+                    return '<a href="' . route('employees.salaries.index', $row->id) . '" class="btn btn-xs btn-outline-info py-0 px-2 fw-semibold" title="Manage Salary">
+                                Manage Salary
+                            </a>';
+                })
                 ->addColumn('edit', function ($row) {
                     return '<a href="' . route('employees.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
                                 Edit
@@ -65,7 +70,7 @@ class EmployeeController extends Controller
                 ->editColumn('email', function ($row) {
                     return '<a href="mailto:' . e($row->email) . '" class="text-decoration-none text-body">' . e($row->email) . '</a>';
                 })
-                ->rawColumns(['company_name', 'branch_name', 'department_name', 'edit', 'delete', 'status', 'email'])
+                ->rawColumns(['company_name', 'branch_name', 'department_name', 'salary', 'edit', 'delete', 'status', 'email'])
                 ->make(true);
         }
 
@@ -188,11 +193,10 @@ class EmployeeController extends Controller
 
         try {
             // Create user for login integration
-            $nameParts = explode(' ', trim($request->name), 2);
             $user = new User();
-            $user->first_name = $nameParts[0];
-            $user->last_name = $nameParts[1] ?? '';
+            $user->name = $request->name;
             $user->email = $request->email;
+            $user->mobile = $request->mobile;
             $user->password = Hash::make($request->password);
             $user->role = 'employee';
             $user->status = $request->status;
@@ -346,10 +350,9 @@ class EmployeeController extends Controller
                 $user = User::where('email', $employee->email)->first();
             }
             if ($user) {
-                $nameParts = explode(' ', trim($request->name), 2);
-                $user->first_name = $nameParts[0];
-                $user->last_name = $nameParts[1] ?? '';
+                $user->name = $request->name;
                 $user->email = $request->email;
+                $user->mobile = $request->mobile;
                 if ($request->filled('password')) {
                     $user->password = Hash::make($request->password);
                 }

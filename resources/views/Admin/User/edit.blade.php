@@ -16,20 +16,11 @@
                 </div>
                 <div class="card-body p-4">
                     <div class="row g-4">
-                        <!-- First Name -->
+                        <!-- Name -->
                         <div class="col-md-6">
-                            <label for="first_name" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control @error('first_name') is-invalid @enderror" id="first_name" name="first_name" value="{{ old('first_name', $user->first_name) }}" required>
-                            @error('first_name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <!-- Last Name -->
-                        <div class="col-md-6">
-                            <label for="last_name" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control @error('last_name') is-invalid @enderror" id="last_name" name="last_name" value="{{ old('last_name', $user->last_name) }}" required>
-                            @error('last_name')
+                            <label for="name" class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $user->name) }}" required>
+                            @error('name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

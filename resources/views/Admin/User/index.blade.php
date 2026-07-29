@@ -44,8 +44,7 @@
                                 <th scope="col" class="fw-bold text-center" style="width: 55px;">Show</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 80px;">Status</th>
                                 <th scope="col" class="fw-bold">Register Date</th>
-                                <th scope="col" class="fw-bold">First Name</th>
-                                <th scope="col" class="fw-bold">Last Name</th>
+                                <th scope="col" class="fw-bold">Name</th>
                                 <th scope="col" class="fw-bold">E-Mail</th>
                                 <th scope="col" class="fw-bold">Role</th>
                                 <th scope="col" class="fw-bold text-center pe-2" style="width: 100px;">Actions</th>
@@ -69,8 +68,7 @@
                                         </span>
                                     </td>
                                     <td class="text-muted">{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>
-                                    <td>{{ $user->first_name }}</td>
-                                    <td>{{ $user->last_name }}</td>
+                                    <td>{{ $user->name }}</td>
                                     <td>
                                         <a href="mailto:{{ $user->email }}" class="text-decoration-none text-body">{{ $user->email }}</a>
                                     </td>

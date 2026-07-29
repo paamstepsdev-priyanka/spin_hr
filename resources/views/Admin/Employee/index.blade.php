@@ -97,6 +97,7 @@
                                 <th scope="col" class="fw-bold text-center" style="width: 10px;">#</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 20px;">Edit</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 20px;">Delete</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 20px;">Salary</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 20px;">Status</th>
                                 <th scope="col" class="fw-bold pe-2" style="width: 110px;">Employee Code</th>
                                 <th scope="col" class="fw-bold">Name</th>
@@ -142,6 +143,7 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
                 { data: 'edit', name: 'edit', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'delete', name: 'delete', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'salary', name: 'salary', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'status', name: 'status', className: 'text-center' },
                 { data: 'employee_code', name: 'employee_code', className: 'fw-bold text-body' },   
                 { data: 'name', name: 'name', className: 'fw-semibold' },

@@ -47,7 +47,7 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
                             <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle fw-bold">
-                                {{ strtoupper(substr(Auth::user()->first_name ?? 'A', 0, 1)) }}
+                                {{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 1)) }}
                             </div>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end pt-0">

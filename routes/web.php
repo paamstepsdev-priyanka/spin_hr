@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Admin\EmployeeSalaryController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login
@@ -41,4 +42,5 @@ Route::middleware('auth')->group(function () {
     // Employee 
     Route::get('companies/{company}/get-branches', [EmployeeController::class, 'getBranches'])->name('companies.get-branches');
     Route::resource('employees', EmployeeController::class);
+    Route::resource('employees.salaries', EmployeeSalaryController::class);
 });
