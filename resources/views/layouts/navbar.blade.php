@@ -29,6 +29,13 @@
             </a>
         </li>
 
+        <li>
+            <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">
+                <i class="bi bi-person-badge"></i>
+                <span>Employees</span>
+            </a>
+        </li>
+
         {{-- <li>
             <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i>

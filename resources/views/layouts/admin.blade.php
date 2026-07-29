@@ -73,7 +73,6 @@
             <div class="container-fluid px-4">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb my-0">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                         <li class="breadcrumb-item active"><span>@yield('title', 'Dashboard')</span></li>
                     </ol>
                 </nav>
@@ -120,6 +119,58 @@
         document.addEventListener("scroll", () => {
             if (header) {
                 header.classList.toggle("shadow-sm", document.documentElement.scrollTop > 0);
+            }
+        });
+
+        // Auto hide success alerts after 4 seconds (handles initial page load & dynamic AJAX alerts across all modules)
+        function autoHideSuccessAlerts() {
+            document.querySelectorAll('.alert-success:not([data-auto-dismiss])').forEach(function(alert) {
+                alert.setAttribute('data-auto-dismiss', 'true');
+                setTimeout(function() {
+                    alert.classList.remove('show');
+                    setTimeout(function() {
+                        if (alert.parentNode) {
+                            alert.parentNode.removeChild(alert);
+                        }
+                    }, 300);
+                }, 4000);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            autoHideSuccessAlerts();
+
+            // Observe DOM changes for dynamically inserted alerts via AJAX across all modules
+            const alertObserver = new MutationObserver(function() {
+                autoHideSuccessAlerts();
+            });
+            alertObserver.observe(document.body, { childList: true, subtree: true });
+
+            // Restore save button state if re-enabled on validation errors
+            setInterval(function() {
+                document.querySelectorAll('button[data-is-loading="true"]').forEach(function(btn) {
+                    if (!btn.disabled && !btn.classList.contains('disabled')) {
+                        const origHtml = btn.getAttribute('data-original-html');
+                        if (origHtml) {
+                            btn.innerHTML = origHtml;
+                        }
+                        btn.removeAttribute('data-is-loading');
+                    }
+                });
+            }, 200);
+        });
+
+        // Global small spinner loader for save/submit buttons across all modules
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            const btn = form.querySelector('button[type="submit"], #btn-save');
+            if (btn && !btn.getAttribute('data-is-loading')) {
+                btn.setAttribute('data-is-loading', 'true');
+                btn.setAttribute('data-original-html', btn.innerHTML);
+                
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + btn.innerHTML;
+                btn.disabled = true;
+                btn.classList.add('disabled');
             }
         });
     </script>

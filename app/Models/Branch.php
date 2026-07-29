@@ -39,4 +39,12 @@ class Branch extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    /**
+     * Get the employees for the branch.
+     */
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
 }

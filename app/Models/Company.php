@@ -35,5 +35,13 @@ class Company extends Model
     {
         return $this->hasMany(Branch::class);
     }
+
+    /**
+     * Get the employees for the company.
+     */
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
 }
 

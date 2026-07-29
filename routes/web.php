@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,16 +26,19 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/logout', [AuthController::class, 'logout']); // Fallback GET logout for convenience
 
-    // User Management CRUD
+    // User 
     Route::resource('users', UserController::class);
 
-    // Company Management CRUD
+    // Company 
     Route::resource('companies', CompanyController::class);
-
     Route::prefix('company')->name('company.')->group(function () {
         Route::resource('{company}/branches', BranchController::class)->names('branches');
     });
 
-    // Department Management CRUD
+    // Department 
     Route::resource('departments', DepartmentController::class);
+
+    // Employee 
+    Route::get('companies/{company}/get-branches', [EmployeeController::class, 'getBranches'])->name('companies.get-branches');
+    Route::resource('employees', EmployeeController::class);
 });

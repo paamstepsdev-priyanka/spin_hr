@@ -18,4 +18,12 @@ class Department extends Model
         'name',
         'status',
     ];
+
+    /**
+     * Get the employees for the department.
+     */
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
 }
