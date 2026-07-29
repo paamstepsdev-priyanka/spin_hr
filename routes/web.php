@@ -31,12 +31,10 @@ Route::middleware('auth')->group(function () {
     // Company Management CRUD
     Route::resource('companies', CompanyController::class);
 
-    // Department Management CRUD
-    Route::resource('departments', DepartmentController::class);
-
-    // Branch Management CRUD (Nested in Company Module)
-    Route::prefix('admin/company')->name('admin.company.')->group(function () {
+    Route::prefix('company')->name('company.')->group(function () {
         Route::resource('{company}/branches', BranchController::class)->names('branches');
     });
-});
 
+    // Department Management CRUD
+    Route::resource('departments', DepartmentController::class);
+});

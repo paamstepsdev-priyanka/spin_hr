@@ -13,7 +13,7 @@
             </a>
         </li>
 
-        <li class="menu-title">Management</li>
+        <li class="menu-title">Master</li>
 
         <li>
             <a href="{{ route('companies.index') }}" class="{{ request()->routeIs('companies.*') || request()->routeIs('admin.company.*') ? 'active' : '' }}">

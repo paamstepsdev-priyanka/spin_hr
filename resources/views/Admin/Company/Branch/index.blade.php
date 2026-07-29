@@ -29,7 +29,7 @@
                     <a href="{{ route('companies.index') }}" class="btn btn-outline-secondary btn-sm fw-semibold">
                         Back to Companies
                     </a>
-                    <a href="{{ route('admin.company.branches.create', $company->id) }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
+                    <a href="{{ route('company.branches.create', $company->id) }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                             <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
                         </svg>
@@ -126,7 +126,7 @@
         let table = $('#branches-table').DataTable({
             processing: true,
             serverSide: true,
-            ajax: "{{ route('admin.company.branches.index', $company->id) }}",
+            ajax: "{{ route('company.branches.index', $company->id) }}",
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
                 { data: 'edit', name: 'edit', orderable: false, searchable: false, className: 'text-center pe-2' },

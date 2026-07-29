@@ -21,7 +21,7 @@ class CompanyController extends Controller
             return DataTables::of($companies)
                 ->addIndexColumn()
                 ->addColumn('branches', function ($row) {
-                    return '<a href="' . route('admin.company.branches.index', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold" title="Branches">
+                    return '<a href="' . route('company.branches.index', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold" title="Branches">
                                 Branches (' . $row->branches_count . ')
                             </a>';
                 })

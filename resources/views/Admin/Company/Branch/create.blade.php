@@ -10,14 +10,14 @@
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('companies.index') }}" class="text-decoration-none">Company</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('admin.company.branches.index', $company->id) }}" class="text-decoration-none">Branch</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('company.branches.index', $company->id) }}" class="text-decoration-none">Branch</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Add Branch</li>
             </ol>
         </nav>
 
         <div id="alert-container"></div>
 
-        <form id="branch-form" action="{{ route('admin.company.branches.store', $company->id) }}" method="POST" novalidate>
+        <form id="branch-form" action="{{ route('company.branches.store', $company->id) }}" method="POST" novalidate>
             @csrf
 
             <!-- Form Details Card -->
@@ -34,7 +34,7 @@
             <!-- Form Action Buttons -->
             <div class="mt-3">
                 <button type="submit" id="btn-save" class="btn btn-primary">Save Branch</button>
-                <a href="{{ route('admin.company.branches.index', $company->id) }}" class="btn btn-secondary">Cancel</a>
+                <a href="{{ route('company.branches.index', $company->id) }}" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
     </div>

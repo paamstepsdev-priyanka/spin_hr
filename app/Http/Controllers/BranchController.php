@@ -22,7 +22,7 @@ class BranchController extends Controller
                 ->addIndexColumn()
                 ->addColumn('edit', function ($row) use ($company) {
                     return '<div class="btn-group btn-group-sm" role="group">
-                                <a href="' . route('admin.company.branches.edit', [$company->id, $row->id]) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
+                                <a href="' . route('company.branches.edit', [$company->id, $row->id]) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
                                     Edit
                                 </a>
                             </div>';
@@ -88,7 +88,7 @@ class BranchController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Branch created successfully.',
-            'redirect' => route('admin.company.branches.index', $company->id)
+            'redirect' => route('company.branches.index', $company->id)
         ]);
     }
 
@@ -138,7 +138,7 @@ class BranchController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Branch updated successfully.',
-            'redirect' => route('admin.company.branches.index', $company->id)
+            'redirect' => route('company.branches.index', $company->id)
         ]);
     }
 }
