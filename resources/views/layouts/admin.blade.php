@@ -35,6 +35,57 @@
                         <path fill="var(--ci-primary-color, currentcolor)" d="M80 96h352v32H80zm0 144h352v32H80zm0 144h352v32H80z" class="ci-primary" />
                     </svg>
                 </button>
+                <!-- Company Switcher Dropdown -->
+                @if(isset($userCompanies) && count($userCompanies) > 0)
+                <ul class="header-nav me-3">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link py-1 px-3 border rounded text-body d-flex align-items-center bg-body-tertiary" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-building me-2 text-primary"></i>
+                            <span class="fw-semibold me-1">
+                                @if(isset($currentCompany) && $currentCompany)
+                                    {{ $currentCompany->name }}
+                                @else
+                                    All Companies
+                                @endif
+                            </span>
+                            <i class="bi bi-chevron-down ms-1 small"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end pt-0">
+                            <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">
+                                Select Company
+                            </div>
+                            
+                            @if(isset($isSuperAdmin) && $isSuperAdmin)
+                            <form action="{{ route('company.switch') }}" method="POST" class="d-inline">
+                                @csrf
+                                <input type="hidden" name="company_id" value="all">
+                                <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between {{ (isset($currentCompanyId) && $currentCompanyId === null) ? 'active bg-primary text-white fw-bold' : '' }}">
+                                    <span><i class="bi bi-buildings me-2"></i>All Companies</span>
+                                    @if(isset($currentCompanyId) && $currentCompanyId === null)
+                                        <i class="bi bi-check-lg"></i>
+                                    @endif
+                                </button>
+                            </form>
+                            <div class="dropdown-divider my-1"></div>
+                            @endif
+
+                            @foreach($userCompanies as $comp)
+                            <form action="{{ route('company.switch') }}" method="POST" class="d-inline">
+                                @csrf
+                                <input type="hidden" name="company_id" value="{{ $comp->id }}">
+                                <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between {{ (isset($currentCompanyId) && (int)$currentCompanyId === (int)$comp->id) ? 'active bg-primary text-white fw-bold' : '' }}">
+                                    <span><i class="bi bi-building me-2"></i>{{ $comp->name }}</span>
+                                    @if(isset($currentCompanyId) && (int)$currentCompanyId === (int)$comp->id)
+                                        <i class="bi bi-check-lg"></i>
+                                    @endif
+                                </button>
+                            </form>
+                            @endforeach
+                        </div>
+                    </li>
+                </ul>
+                @endif
+
                 <ul class="header-nav ms-auto me-3">
                     <li class="nav-item">
                         <span class="nav-link fw-semibold text-body">

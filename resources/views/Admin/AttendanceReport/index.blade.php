@@ -37,12 +37,20 @@
                         <!-- Company (Required) -->
                         <div class="col-md-3">
                             <label for="company_id" class="form-label small fw-semibold">Company <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
-                                <option value="">Select Company</option>
-                                @foreach($companies as $company)
-                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                @endforeach
-                            </select>
+                            @if(isset($selectedCompanyId) && $selectedCompanyId !== null)
+                                @php
+                                    $compObj = $companies->firstWhere('id', $selectedCompanyId);
+                                @endphp
+                                <input type="text" class="form-control form-control-sm bg-light" value="{{ $compObj ? $compObj->name : 'Current Company' }}" readonly>
+                                <input type="hidden" name="company_id" id="company_id" value="{{ $selectedCompanyId }}">
+                            @else
+                                <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
+                                    <option value="">Select Company</option>
+                                    @foreach($companies as $company)
+                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                    @endforeach
+                                </select>
+                            @endif
                             <div class="invalid-feedback small" id="err-company_id">Company is required.</div>
                         </div>
 
@@ -185,6 +193,11 @@
                 loadEmployees(companyId, branchId);
             }
         });
+
+        // Trigger initial company load if pre-selected
+        if ($('#company_id').val()) {
+            $('#company_id').trigger('change');
+        }
 
         // Submit Form Handler for View Report
         $('#attendance-report-form').on('submit', function(e) {

@@ -35,12 +35,20 @@
                         <!-- Company Dropdown -->
                         <div class="col-md-3">
                             <label for="company_id" class="form-label small fw-semibold">Company <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
-                                <option value="">Select Company</option>
-                                @foreach($companies as $company)
-                                    <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
-                                @endforeach
-                            </select>
+                            @if(isset($selectedCompanyId) && $selectedCompanyId !== null)
+                                @php
+                                    $compObj = $companies->firstWhere('id', $selectedCompanyId);
+                                @endphp
+                                <input type="text" class="form-control form-control-sm bg-light" value="{{ $compObj ? $compObj->name : 'Current Company' }}" readonly>
+                                <input type="hidden" name="company_id" id="company_id" value="{{ $selectedCompanyId }}">
+                            @else
+                                <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
+                                    <option value="">Select Company</option>
+                                    @foreach($companies as $company)
+                                        <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
+                                    @endforeach
+                                </select>
+                            @endif
                         </div>
 
                         <!-- Branch Dropdown -->

@@ -11,6 +11,23 @@ use Yajra\DataTables\Facades\DataTables;
 class CompanyController extends Controller
 {
     /**
+     * Switch active session company.
+     */
+    public function switchCompany(Request $request)
+    {
+        $companyId = $request->input('company_id');
+
+        $success = \App\Services\CompanyScope::setCompany($companyId);
+
+        if (!$success) {
+            return redirect()->back()->with('error', 'Unauthorized or invalid company selection.');
+        }
+
+        session()->flash('success', 'Company switched successfully.');
+        return redirect()->route('dashboard');
+    }
+
+    /**
      * Display a listing of the companies (Supports AJAX DataTables & standard view).
      */
     public function index(Request $request)

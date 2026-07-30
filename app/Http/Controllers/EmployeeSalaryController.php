@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
+use App\Services\CompanyScope;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
@@ -12,10 +13,22 @@ use Yajra\DataTables\Facades\DataTables;
 class EmployeeSalaryController extends Controller
 {
     /**
+     * Authorize that the target employee belongs to active company scope.
+     */
+    protected function authorizeEmployeeCompany(Employee $employee): void
+    {
+        if (CompanyScope::id() !== null && (int) $employee->company_id !== CompanyScope::id()) {
+            abort(403, 'Unauthorized company access.');
+        }
+    }
+
+    /**
      * Display a listing of the salary records for the specified employee.
      */
     public function index(Request $request, Employee $employee)
     {
+        $this->authorizeEmployeeCompany($employee);
+
         if ($request->ajax()) {
             $salaries = $employee->salaries()->orderBy('effective_from', 'desc')->orderBy('id', 'desc');
 
@@ -67,6 +80,7 @@ class EmployeeSalaryController extends Controller
      */
     public function create(Employee $employee): View
     {
+        $this->authorizeEmployeeCompany($employee);
         return view('Admin.Employee.Salary.create', compact('employee'));
     }
 
@@ -75,6 +89,8 @@ class EmployeeSalaryController extends Controller
      */
     public function store(Request $request, Employee $employee)
     {
+        $this->authorizeEmployeeCompany($employee);
+
         $request->validate([
             'basic_salary' => 'required|numeric|min:0',
             'variable_allowance' => 'nullable|numeric|min:0',
@@ -144,6 +160,7 @@ class EmployeeSalaryController extends Controller
      */
     public function edit(Employee $employee, EmployeeSalary $salary): View
     {
+        $this->authorizeEmployeeCompany($employee);
         return view('Admin.Employee.Salary.edit', compact('employee', 'salary'));
     }
 
@@ -152,6 +169,8 @@ class EmployeeSalaryController extends Controller
      */
     public function update(Request $request, Employee $employee, EmployeeSalary $salary)
     {
+        $this->authorizeEmployeeCompany($employee);
+
         $request->validate([
             'basic_salary' => 'required|numeric|min:0',
             'variable_allowance' => 'nullable|numeric|min:0',
@@ -218,6 +237,8 @@ class EmployeeSalaryController extends Controller
      */
     public function destroy(Employee $employee, EmployeeSalary $salary)
     {
+        $this->authorizeEmployeeCompany($employee);
+
         $salary->delete();
 
         if (request()->ajax()) {

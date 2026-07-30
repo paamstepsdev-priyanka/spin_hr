@@ -7,6 +7,8 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\UserCompany;
+use App\Services\CompanyScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,10 +23,13 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
+        $selectedCompanyId = CompanyScope::id();
+
         if ($request->ajax()) {
-            $employees = Employee::with(['company', 'branch', 'department'])
+            $employees = Employee::forCurrentCompany()
+                ->with(['company', 'branch', 'department'])
                 ->withCount('salaries')
-                ->when($request->filled('company_id'), function ($query) use ($request) {
+                ->when($selectedCompanyId === null && $request->filled('company_id'), function ($query) use ($request) {
                     return $query->where('company_id', $request->company_id);
                 })
                 ->when($request->filled('branch_id'), function ($query) use ($request) {
@@ -77,8 +82,8 @@ class EmployeeController extends Controller
                 ->make(true);
         }
 
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
-        $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
+        $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
 
         return view('Admin.Employee.index', compact('companies', 'branches'));
     }
@@ -88,10 +93,11 @@ class EmployeeController extends Controller
      */
     public function create(): View
     {
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
         $departments = Department::where('status', 'active')->orderBy('name', 'asc')->get();
+        $selectedCompanyId = CompanyScope::id();
 
-        return view('Admin.Employee.create', compact('companies', 'departments'));
+        return view('Admin.Employee.create', compact('companies', 'departments', 'selectedCompanyId'));
     }
 
     /**
@@ -99,6 +105,10 @@ class EmployeeController extends Controller
      */
     public function getBranches(Company $company)
     {
+        if (CompanyScope::id() !== null && CompanyScope::id() !== (int)$company->id) {
+            return response()->json([], 403);
+        }
+
         $branches = Branch::where('company_id', $company->id)
             ->where('status', 'active')
             ->orderBy('name', 'asc')
@@ -112,6 +122,9 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
@@ -231,6 +244,12 @@ class EmployeeController extends Controller
 
             $employee->save();
 
+            // Link user to company in user_companies mapping table
+            UserCompany::updateOrInsert(
+                ['user_id' => $user->id, 'company_id' => $employee->company_id],
+                ['is_default' => true, 'status' => 'active', 'created_at' => now(), 'updated_at' => now()]
+            );
+
             DB::commit();
 
             session()->flash('success', 'Employee created successfully.');
@@ -253,11 +272,12 @@ class EmployeeController extends Controller
      */
     public function edit(Employee $employee): View
     {
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
         $branches = Branch::where('company_id', $employee->company_id)->orderBy('name', 'asc')->get();
         $departments = Department::where('status', 'active')->orderBy('name', 'asc')->get();
+        $selectedCompanyId = CompanyScope::id();
 
-        return view('Admin.Employee.edit', compact('employee', 'companies', 'branches', 'departments'));
+        return view('Admin.Employee.edit', compact('employee', 'companies', 'branches', 'departments', 'selectedCompanyId'));
     }
 
     /**
@@ -265,6 +285,9 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, Employee $employee)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',

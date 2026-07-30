@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasCompanyScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmployeeSalary extends Model
 {
-    use HasFactory;
+    use HasFactory, HasCompanyScope;
 
     protected $table = 'employee_salaries';
 

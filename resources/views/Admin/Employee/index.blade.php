@@ -17,10 +17,12 @@
                   <div class="row g-3">
                     <!-- Company Filter -->
                     <div class="col-md-3">
-                        <select class="form-select form-select-sm" id="filter_company_id">
-                            <option value="">All Companies</option>
+                        <select class="form-select form-select-sm" id="filter_company_id" {{ isset($selectedCompanyId) && $selectedCompanyId !== null ? 'disabled' : '' }}>
+                            @if(!isset($selectedCompanyId) || $selectedCompanyId === null)
+                                <option value="">All Companies</option>
+                            @endif
                             @foreach($companies as $company)
-                                <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
                             @endforeach
                         </select>
                     </div>

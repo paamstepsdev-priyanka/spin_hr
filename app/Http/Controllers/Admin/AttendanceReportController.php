@@ -8,6 +8,7 @@ use App\Models\AttendanceMonthDetail;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Services\CompanyScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -18,7 +19,7 @@ class AttendanceReportController extends Controller
      */
     public function index()
     {
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
         $currentMonth = (int) date('m');
         $currentYear = (int) date('Y');
 
@@ -30,6 +31,10 @@ class AttendanceReportController extends Controller
      */
     public function getBranches($companyId)
     {
+        if (CompanyScope::id() !== null && CompanyScope::id() !== (int)$companyId) {
+            return response()->json([], 403);
+        }
+
         $branches = Branch::where('company_id', $companyId)
             ->where('status', 'active')
             ->orderBy('name', 'asc')
@@ -43,7 +48,11 @@ class AttendanceReportController extends Controller
      */
     public function getEmployees(Request $request)
     {
-        $query = Employee::where('status', 'active');
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
+
+        $query = Employee::forCurrentCompany()->where('status', 'active');
 
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->company_id);
@@ -63,6 +72,8 @@ class AttendanceReportController extends Controller
      */
     protected function getFilteredQuery(Request $request)
     {
+        $companyId = CompanyScope::id() ?? $request->company_id;
+
         return AttendanceMonthDetail::query()
             ->with([
                 'attendanceMonth.company',
@@ -71,8 +82,8 @@ class AttendanceReportController extends Controller
                 'employee.company',
                 'employee.branch'
             ])
-            ->whereHas('attendanceMonth', function ($q) use ($request) {
-                $q->where('company_id', $request->company_id)
+            ->whereHas('attendanceMonth', function ($q) use ($request, $companyId) {
+                $q->where('company_id', $companyId)
                   ->where('month', (int) $request->month)
                   ->where('year', (int) $request->year);
 
@@ -90,6 +101,10 @@ class AttendanceReportController extends Controller
      */
     public function report(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
+
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'month' => 'required|integer|between:1,12',
@@ -125,6 +140,10 @@ class AttendanceReportController extends Controller
      */
     public function exportExcel(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
+
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'month' => 'required|integer|between:1,12',
@@ -163,7 +182,6 @@ class AttendanceReportController extends Controller
 
         $callback = function () use ($records, $columns, $monthName, $request) {
             $file = fopen('php://output', 'w');
-            // Add UTF-8 BOM for proper Excel encoding
             fputs($file, "\xEF\xBB\xBF");
             fputcsv($file, $columns);
 
@@ -209,6 +227,10 @@ class AttendanceReportController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
+
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'month' => 'required|integer|between:1,12',

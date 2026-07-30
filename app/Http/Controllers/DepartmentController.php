@@ -16,7 +16,7 @@ class DepartmentController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $departments = Department::orderBy('id', 'desc');
+            $departments = Department::forCurrentCompany()->orderBy('id', 'desc');
 
             return DataTables::of($departments)
                 ->addIndexColumn()

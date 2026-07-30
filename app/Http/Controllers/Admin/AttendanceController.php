@@ -9,6 +9,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Payroll;
+use App\Services\CompanyScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,10 +22,13 @@ class AttendanceController extends Controller
      */
     public function index(Request $request)
     {
+        $selectedCompanyId = CompanyScope::id();
+
         if ($request->ajax()) {
-            $batches = AttendanceMonth::with(['company', 'branch', 'creator'])
+            $batches = AttendanceMonth::forCurrentCompany()
+                ->with(['company', 'branch', 'creator'])
                 ->withCount('details')
-                ->when($request->filled('company_id'), function ($query) use ($request) {
+                ->when($selectedCompanyId === null && $request->filled('company_id'), function ($query) use ($request) {
                     return $query->where('company_id', $request->company_id);
                 })
                 ->when($request->filled('branch_id'), function ($query) use ($request) {
@@ -105,8 +109,8 @@ class AttendanceController extends Controller
                 ->make(true);
         }
 
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
-        $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
+        $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
         $months = [
             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
             5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
@@ -121,8 +125,8 @@ class AttendanceController extends Controller
      */
     public function create()
     {
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
-        $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
+        $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
 
         $months = [
             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
@@ -141,6 +145,9 @@ class AttendanceController extends Controller
      */
     public function loadEmployees(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
@@ -243,6 +250,9 @@ class AttendanceController extends Controller
      */
     public function store(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
@@ -391,7 +401,7 @@ class AttendanceController extends Controller
      */
     public function show($id)
     {
-        $attendanceMonth = AttendanceMonth::with([
+        $attendanceMonth = AttendanceMonth::forCurrentCompany()->with([
             'company',
             'branch',
             'creator',
@@ -413,7 +423,7 @@ class AttendanceController extends Controller
      */
     public function edit($id)
     {
-        $attendanceMonth = AttendanceMonth::with([
+        $attendanceMonth = AttendanceMonth::forCurrentCompany()->with([
             'company',
             'branch',
             'details.employee' => function ($q) {
@@ -455,7 +465,7 @@ class AttendanceController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $attendanceMonth = AttendanceMonth::findOrFail($id);
+        $attendanceMonth = AttendanceMonth::forCurrentCompany()->findOrFail($id);
 
         $request->validate([
             'details' => 'required|array|min:1',
@@ -566,7 +576,7 @@ class AttendanceController extends Controller
         DB::beginTransaction();
 
         try {
-            $attendanceMonth = AttendanceMonth::findOrFail($id);
+            $attendanceMonth = AttendanceMonth::forCurrentCompany()->findOrFail($id);
             $attendanceMonth->delete(); // Soft delete master and cascade soft delete details
 
             DB::commit();

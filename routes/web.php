@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('users', UserController::class);
 
     // Company 
+    Route::post('company/switch', [CompanyController::class, 'switchCompany'])->name('company.switch');
     Route::resource('companies', CompanyController::class);
     Route::prefix('company')->name('company.')->group(function () {
         Route::resource('{company}/branches', BranchController::class)->names('branches');

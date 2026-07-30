@@ -35,4 +35,31 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    /**
+     * Get the user company mapping records.
+     */
+    public function userCompanies()
+    {
+        return $this->hasMany(UserCompany::class);
+    }
+
+    /**
+     * Get companies accessible by the user.
+     */
+    public function companies()
+    {
+        return $this->belongsToMany(Company::class, 'user_companies', 'user_id', 'company_id')
+                    ->withPivot('is_default', 'status')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Check if the user is Super Admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin']) || $this->email === 'admin@gmail.com';
+    }
 }
+

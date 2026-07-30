@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Services\CompanyScope;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
@@ -15,6 +16,10 @@ class BranchController extends Controller
      */
     public function index(Request $request, Company $company)
     {
+        if (CompanyScope::id() !== null && CompanyScope::id() !== (int)$company->id) {
+            abort(403, 'Unauthorized company access.');
+        }
+
         if ($request->ajax()) {
             $branches = $company->branches()->orderBy('id', 'desc');
 
@@ -44,6 +49,10 @@ class BranchController extends Controller
      */
     public function create(Company $company): View
     {
+        if (CompanyScope::id() !== null && CompanyScope::id() !== (int)$company->id) {
+            abort(403, 'Unauthorized company access.');
+        }
+
         return view('Admin.Company.Branch.create', compact('company'));
     }
 
@@ -52,6 +61,10 @@ class BranchController extends Controller
      */
     public function store(Request $request, Company $company)
     {
+        if (CompanyScope::id() !== null && CompanyScope::id() !== (int)$company->id) {
+            abort(403, 'Unauthorized company access.');
+        }
+
         $request->validate([
             'name' => 'required|max:255',
             'email' => 'required|email|unique:branches,email',
@@ -95,6 +108,10 @@ class BranchController extends Controller
      */
     public function edit(Company $company, Branch $branch): View
     {
+        if (CompanyScope::id() !== null && CompanyScope::id() !== (int)$company->id) {
+            abort(403, 'Unauthorized company access.');
+        }
+
         return view('Admin.Company.Branch.edit', compact('company', 'branch'));
     }
 
@@ -103,6 +120,10 @@ class BranchController extends Controller
      */
     public function update(Request $request, Company $company, Branch $branch)
     {
+        if (CompanyScope::id() !== null && CompanyScope::id() !== (int)$company->id) {
+            abort(403, 'Unauthorized company access.');
+        }
+
         $request->validate([
             'name' => 'required|max:255',
             'email' => 'required|email|unique:branches,email,' . $branch->id,

@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\Payroll;
 use App\Models\PayrollDetail;
+use App\Services\CompanyScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,10 +23,13 @@ class PayrollController extends Controller
      */
     public function index(Request $request)
     {
+        $selectedCompanyId = CompanyScope::id();
+
         if ($request->ajax()) {
-            $query = Payroll::with(['company', 'branch', 'creator'])
+            $query = Payroll::forCurrentCompany()
+                ->with(['company', 'branch', 'creator'])
                 ->withCount('details')
-                ->when($request->filled('company_id'), function ($q) use ($request) {
+                ->when($selectedCompanyId === null && $request->filled('company_id'), function ($q) use ($request) {
                     return $q->where('company_id', $request->company_id);
                 })
                 ->when($request->filled('branch_id'), function ($q) use ($request) {
@@ -101,8 +105,8 @@ class PayrollController extends Controller
                 ->make(true);
         }
 
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
-        $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
+        $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
         $months = [
             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
             5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
@@ -118,8 +122,8 @@ class PayrollController extends Controller
      */
     public function create(Request $request)
     {
-        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
-        $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
+        $companies = CompanyScope::companies();
+        $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
         $months = [
             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
             5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
@@ -128,7 +132,7 @@ class PayrollController extends Controller
 
         $currentMonth = (int) $request->query('month', date('n'));
         $currentYear = (int) $request->query('year', date('Y'));
-        $selectedCompanyId = $request->query('company_id');
+        $selectedCompanyId = $request->query('company_id') ?? CompanyScope::id();
         $selectedBranchId = $request->query('branch_id');
 
         return view('Admin.Payroll.create', compact('companies', 'branches', 'months', 'currentMonth', 'currentYear', 'selectedCompanyId', 'selectedBranchId'));
@@ -139,6 +143,9 @@ class PayrollController extends Controller
      */
     public function loadEmployees(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
@@ -312,6 +319,9 @@ class PayrollController extends Controller
      */
     public function store(Request $request)
     {
+        if (CompanyScope::id() !== null) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
@@ -524,7 +534,7 @@ class PayrollController extends Controller
      */
     public function show($id)
     {
-        $payroll = Payroll::with([
+        $payroll = Payroll::forCurrentCompany()->with([
             'company',
             'branch',
             'creator',
@@ -541,7 +551,7 @@ class PayrollController extends Controller
      */
     public function destroy($id)
     {
-        $payroll = Payroll::findOrFail($id);
+        $payroll = Payroll::forCurrentCompany()->findOrFail($id);
 
         if (in_array($payroll->status, ['Locked', 'Paid'])) {
             if (request()->ajax()) {
@@ -587,7 +597,9 @@ class PayrollController extends Controller
      */
     public function salarySlip($detailId)
     {
-        $detail = PayrollDetail::with([
+        $detail = PayrollDetail::whereHas('payroll', function ($q) {
+            $q->forCurrentCompany();
+        })->with([
             'payroll.company',
             'payroll.branch',
             'employee.department'
@@ -603,7 +615,9 @@ class PayrollController extends Controller
      */
     public function salarySlipPdf($detailId)
     {
-        $detail = PayrollDetail::with([
+        $detail = PayrollDetail::whereHas('payroll', function ($q) {
+            $q->forCurrentCompany();
+        })->with([
             'payroll.company',
             'payroll.branch',
             'employee.department'

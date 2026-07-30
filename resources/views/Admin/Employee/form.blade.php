@@ -8,14 +8,23 @@
             <!-- Company -->
             <div class="col-md-4">
                 <label for="company_id" class="form-label fw-semibold">Company <span class="text-danger">*</span></label>
-                <select class="form-select" id="company_id" name="company_id">
-                    <option value="">Select Company</option>
-                    @foreach($companies as $company)
-                        <option value="{{ $company->id }}" {{ isset($employee) && $employee->company_id == $company->id ? 'selected' : '' }}>
-                            {{ $company->name }}
-                        </option>
-                    @endforeach
-                </select>
+                @if(isset($selectedCompanyId) && $selectedCompanyId !== null)
+                    @php
+                        $activeCompId = isset($employee) ? $employee->company_id : $selectedCompanyId;
+                        $compObj = $companies->firstWhere('id', $activeCompId);
+                    @endphp
+                    <input type="text" class="form-control bg-light" value="{{ $compObj ? $compObj->name : 'Current Company' }}" readonly>
+                    <input type="hidden" name="company_id" id="company_id" value="{{ $activeCompId }}">
+                @else
+                    <select class="form-select" id="company_id" name="company_id">
+                        <option value="">Select Company</option>
+                        @foreach($companies as $company)
+                            <option value="{{ $company->id }}" {{ (isset($employee) ? $employee->company_id : '') == $company->id ? 'selected' : '' }}>
+                                {{ $company->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
                 <div class="text-danger small mt-1" id="company_id-error"></div>
             </div>
 
