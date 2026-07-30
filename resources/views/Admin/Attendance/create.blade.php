@@ -2,6 +2,19 @@
 
 @section('title', 'Mark Attendance')
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+<style>
+    .select2-container--bootstrap-5 .select2-selection {
+        font-size: 0.875rem;
+        min-height: 31px;
+        padding-top: 0.15rem;
+        padding-bottom: 0.15rem;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="row">
     <div class="col-12">
@@ -26,7 +39,7 @@
                         <!-- Company Dropdown -->
                         <div class="col-md-3">
                             <label for="company_id" class="form-label small fw-semibold">Company <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" id="company_id" name="company_id" required>
+                            <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
                                 <option value="">Select Company</option>
                                 @foreach($companies as $company)
                                     <option value="{{ $company->id }}">{{ $company->name }}</option>
@@ -37,7 +50,7 @@
                         <!-- Branch Dropdown -->
                         <div class="col-md-3">
                             <label for="branch_id" class="form-label small fw-semibold">Branch <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" id="branch_id" name="branch_id" required>
+                            <select class="form-select form-select-sm select2" id="branch_id" name="branch_id" required>
                                 <option value="">Select Branch</option>
                                 @foreach($branches as $branch)
                                     <option value="{{ $branch->id }}">{{ $branch->name }}</option>
@@ -71,15 +84,22 @@
 
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
+        // Initialize Select2
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
+
         let allBranches = @json($branches);
 
         // Dynamic Branch dropdown population on Company change
         $('#company_id').on('change', function() {
             let companyId = $(this).val();
             let branchSelect = $('#branch_id');
-            branchSelect.html('<option value="">Loading branches...</option>');
+            branchSelect.html('<option value="">Loading branches...</option>').trigger('change');
 
             if (companyId) {
                 let url = "{{ route('companies.get-branches', ':company') }}".replace(':company', companyId);
@@ -91,9 +111,10 @@
                         $.each(branches, function(key, branch) {
                             branchSelect.append('<option value="' + branch.id + '">' + branch.name + '</option>');
                         });
+                        branchSelect.trigger('change');
                     },
                     error: function() {
-                        branchSelect.html('<option value="">Select Branch</option>');
+                        branchSelect.html('<option value="">Select Branch</option>').trigger('change');
                     }
                 });
             } else {
@@ -101,6 +122,7 @@
                 $.each(allBranches, function(key, branch) {
                     branchSelect.append('<option value="' + branch.id + '">' + branch.name + '</option>');
                 });
+                branchSelect.trigger('change');
             }
         });
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Admin\AttendanceController;
+use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\EmployeeSalaryController;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +54,10 @@ Route::middleware('auth')->group(function () {
     Route::get('attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
     Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
     Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+
+    // Attendance Report
+    Route::get('attendance-report', [AttendanceReportController::class, 'index'])->name('attendance-report.index');
+    Route::get('attendance-report/get-branches/{company}', [AttendanceReportController::class, 'getBranches'])->name('attendance-report.get-branches');
+    Route::get('attendance-report/get-employees/{branch}', [AttendanceReportController::class, 'getEmployees'])->name('attendance-report.get-employees');
+    Route::post('attendance-report/report', [AttendanceReportController::class, 'report'])->name('attendance-report.report');
 });
-
-
