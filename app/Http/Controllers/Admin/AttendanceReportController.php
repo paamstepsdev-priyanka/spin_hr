@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\AttendanceBatch;
+use App\Models\AttendanceMonth;
+use App\Models\AttendanceMonthDetail;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Employee;
@@ -75,117 +75,51 @@ class AttendanceReportController extends Controller
         $year = (int) $request->year;
 
         $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
-        $startDate = Carbon::createFromDate($year, $month, 1)->format('Y-m-d');
-        $endDate = Carbon::createFromDate($year, $month, $daysInMonth)->format('Y-m-d');
 
-        // Fetch attendance records joined with attendance_batches for this employee & date range
-        $attendances = Attendance::select('attendances.*', 'attendance_batches.attendance_date')
-            ->join('attendance_batches', 'attendances.attendance_batch_id', '=', 'attendance_batches.id')
-            ->where('attendances.employee_id', $employee->id)
-            ->whereBetween('attendance_batches.attendance_date', [$startDate, $endDate])
-            ->whereNull('attendance_batches.deleted_at')
-            ->whereNull('attendances.deleted_at')
-            ->get()
-            ->keyBy('attendance_date');
+        // Fetch monthly attendance summary if available
+        $attendanceMonth = AttendanceMonth::where('company_id', $request->company_id)
+            ->where('branch_id', $request->branch_id)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->first();
 
-        $dailyLogs = [];
-        $summary = [
-            'total_calendar_days' => $daysInMonth,
-            'working_days' => 0,
-            'present' => 0,
-            'absent' => 0,
-            'leave' => 0,
-            'half_day' => 0,
-            'holiday' => 0,
-            'not_marked' => 0,
-            'total_working_hours' => 0,
-            'overtime_hours' => 0,
-            'payable_days' => 0.0,
-        ];
-
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $dateObj = Carbon::createFromDate($year, $month, $day);
-            $dateStr = $dateObj->format('Y-m-d');
-            $formattedDate = $dateObj->format('d-M-Y');
-            $dayName = $dateObj->format('D');
-            $isSunday = $dateObj->isSunday();
-
-            $att = $attendances->get($dateStr);
-
-            $status = 'Not Marked';
-            $checkIn = '-';
-            $checkOut = '-';
-            $workingHoursStr = '-';
-            $remarks = '-';
-            $workingHoursNum = 0.0;
-
-            if ($att) {
-                $status = $att->attendance_status;
-                $remarks = !empty($att->remarks) ? $att->remarks : '-';
-
-                if ($att->check_in) {
-                    $checkIn = date('h:i A', strtotime($att->check_in));
-                }
-                if ($att->check_out) {
-                    $checkOut = date('h:i A', strtotime($att->check_out));
-                }
-
-                if ($att->check_in && $att->check_out) {
-                    $t1 = strtotime($att->check_in);
-                    $t2 = strtotime($att->check_out);
-                    if ($t2 > $t1) {
-                        $diffSeconds = $t2 - $t1;
-                        $hours = floor($diffSeconds / 3600);
-                        $mins = floor(($diffSeconds % 3600) / 60);
-                        $workingHoursNum = round($diffSeconds / 3600, 2);
-                        $workingHoursStr = sprintf('%02dh %02dm', $hours, $mins);
-                    }
-                }
-            }
-
-            // Summary counts
-            if ($status === 'Present') {
-                $summary['present']++;
-                $summary['working_days']++;
-            } elseif ($status === 'Absent') {
-                $summary['absent']++;
-                $summary['working_days']++;
-            } elseif ($status === 'Leave') {
-                $summary['leave']++;
-                $summary['working_days']++;
-            } elseif ($status === 'Half Day') {
-                $summary['half_day']++;
-                $summary['working_days']++;
-            } elseif ($status === 'Holiday') {
-                $summary['holiday']++;
-            } else {
-                $summary['not_marked']++;
-                if (!$isSunday) {
-                    $summary['working_days']++;
-                } else {
-                    $summary['holiday']++; // Sunday defaults to holiday if not marked
-                }
-            }
-
-            $summary['total_working_hours'] += $workingHoursNum;
-
-            $dailyLogs[] = [
-                'date' => $formattedDate,
-                'day' => $dayName,
-                'status' => $status,
-                'check_in' => $checkIn,
-                'check_out' => $checkOut,
-                'working_hours' => $workingHoursStr,
-                'remarks' => $remarks,
-            ];
+        $detail = null;
+        if ($attendanceMonth) {
+            $detail = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
+                ->where('employee_id', $employee->id)
+                ->first();
         }
 
-        // Summary calculations
-        $summary['total_working_hours_formatted'] = sprintf('%.1f Hours', $summary['total_working_hours']);
-        $summary['overtime_hours_formatted'] = '0 Hours';
+        $summary = [
+            'total_calendar_days' => $daysInMonth,
+            'working_days' => $daysInMonth,
+            'present' => $detail ? (float)$detail->present_days : 0,
+            'absent' => $detail ? (float)$detail->absent_days : 0,
+            'leave' => $detail ? (float)$detail->paid_leave : 0,
+            'lwp' => $detail ? (float)$detail->lwp : 0,
+            'half_day' => $detail ? (float)$detail->half_days : 0,
+            'holiday' => $detail ? (float)$detail->holidays : 0,
+            'overtime_hours' => $detail ? (float)$detail->overtime_hours : 0,
+            'overtime_amount' => $detail ? (float)$detail->overtime_amount : 0,
+            'payable_days' => $detail ? (float)$detail->payable_days : 0,
+        ];
 
-        // Formula: Present + Leave + Holiday + (Half Day * 0.5)
-        $summary['payable_days'] = $summary['present'] + $summary['leave'] + $summary['holiday'] + ($summary['half_day'] * 0.5);
+        $summary['total_working_hours_formatted'] = '-';
+        $summary['overtime_hours_formatted'] = sprintf('%.1f Hours', $summary['overtime_hours']);
+
+        $dailyLogs = [];
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $dateObj = Carbon::createFromDate($year, $month, $day);
+            $dailyLogs[] = [
+                'date' => $dateObj->format('d-M-Y'),
+                'day' => $dateObj->format('D'),
+                'status' => $detail ? 'Monthly Recorded' : 'Not Marked',
+                'check_in' => '-',
+                'check_out' => '-',
+                'working_hours' => '-',
+                'remarks' => $detail ? ($detail->remarks ?? '-') : '-',
+            ];
+        }
 
         $monthName = Carbon::createFromDate($year, $month, 1)->format('F');
 

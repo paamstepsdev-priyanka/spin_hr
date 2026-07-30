@@ -108,5 +108,13 @@ class Employee extends Model
     {
         return $this->hasMany(Attendance::class);
     }
+
+    /**
+     * Get the monthly attendance details for the employee.
+     */
+    public function monthlyAttendanceDetails(): HasMany
+    {
+        return $this->hasMany(AttendanceMonthDetail::class);
+    }
 }
 

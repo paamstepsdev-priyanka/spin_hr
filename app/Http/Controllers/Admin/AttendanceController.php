@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\AttendanceBatch;
+use App\Models\AttendanceMonth;
+use App\Models\AttendanceMonthDetail;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Employee;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
@@ -15,20 +16,27 @@ use Yajra\DataTables\Facades\DataTables;
 class AttendanceController extends Controller
 {
     /**
-     * Display a listing of attendance history batches (Yajra DataTables).
+     * Display a listing of saved monthly attendance batches (Yajra DataTables).
      */
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $batches = AttendanceBatch::with(['company', 'branch'])
-                ->withCount('attendances')
+            $batches = AttendanceMonth::with(['company', 'branch', 'creator'])
+                ->withCount('details')
                 ->when($request->filled('company_id'), function ($query) use ($request) {
                     return $query->where('company_id', $request->company_id);
                 })
                 ->when($request->filled('branch_id'), function ($query) use ($request) {
                     return $query->where('branch_id', $request->branch_id);
                 })
-                ->orderBy('attendance_date', 'desc')
+                ->when($request->filled('month'), function ($query) use ($request) {
+                    return $query->where('month', $request->month);
+                })
+                ->when($request->filled('year'), function ($query) use ($request) {
+                    return $query->where('year', $request->year);
+                })
+                ->orderBy('year', 'desc')
+                ->orderBy('month', 'desc')
                 ->orderBy('id', 'desc');
 
             return DataTables::of($batches)
@@ -39,316 +47,502 @@ class AttendanceController extends Controller
                 ->addColumn('branch_name', function ($row) {
                     return $row->branch ? e($row->branch->name) : '<span class="text-muted">N/A</span>';
                 })
-                ->editColumn('attendance_date', function ($row) {
-                    return date('d-m-Y', strtotime($row->attendance_date));
+                ->editColumn('month', function ($row) {
+                    return Carbon::createFromDate($row->year, $row->month, 1)->format('F');
+                })
+                ->editColumn('year', function ($row) {
+                    return $row->year;
                 })
                 ->addColumn('employees_count', function ($row) {
-                    return '<span class="badge bg-secondary px-2 py-1">' . $row->attendances_count . '</span>';
+                    return '<span class="badge bg-secondary px-2 py-1">' . $row->details_count . '</span>';
                 })
                 ->addColumn('status', function ($row) {
-                    return '<span class="badge bg-success px-2 py-1">Completed</span>';
+                    return '<span class="badge bg-success px-2 py-1">' . ucfirst($row->status) . '</span>';
                 })
-                ->addColumn('edit', function ($row) {
-                    return '<a href="' . route('attendance.edit', $row->id) . '" class="btn btn-xs btn-primary py-0 px-1 me-1" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>';
+                ->addColumn('created_by', function ($row) {
+                    return $row->creator ? e($row->creator->name) : '<span class="text-muted">System</span>';
                 })
-                ->addColumn('delete', function ($row) {
-                    return '<button type="button" class="btn btn-xs btn-danger text-white py-0 px-1 btn-delete" data-url="' . route('attendance.destroy', $row->id) . '" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>';
+                ->addColumn('created_at', function ($row) {
+                    return $row->created_at ? $row->created_at->format('d/m/Y h:i A') : '-';
                 })
-                ->rawColumns(['company_name', 'branch_name', 'employees_count', 'status', 'edit', 'delete'])
+                ->addColumn('action', function ($row) {
+                    $viewBtn = '<a href="' . route('attendance.show', $row->id) . '" class="btn btn-xs btn-outline-info py-0 px-1 me-1" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>';
+                    $editBtn = '<a href="' . route('attendance.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1 me-1" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>';
+                    $deleteBtn = '<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 me-1 btn-delete" data-url="' . route('attendance.destroy', $row->id) . '" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>';
+                    $payrollBtn = '<button type="button" class="btn btn-xs btn-outline-success py-0 px-1" title="Payroll (Coming Soon)" disabled>
+                                    <i class="bi bi-currency-rupee"></i>
+                                </button>';
+
+                    return '<div class="d-flex justify-content-center align-items-center">' . $viewBtn . $editBtn . $deleteBtn . $payrollBtn . '</div>';
+                })
+                ->rawColumns(['company_name', 'branch_name', 'employees_count', 'status', 'created_by', 'created_at', 'action'])
                 ->make(true);
         }
 
-        return view('Admin.Attendance.index');
+        $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
+        $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
+        $months = [
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+
+        return view('Admin.Attendance.index', compact('companies', 'branches', 'months'));
     }
 
     /**
-     * Show the form for creating / marking attendance.
+     * Show the form for marking monthly attendance.
      */
     public function create()
     {
         $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
         $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
 
-        return view('Admin.Attendance.create', compact('companies', 'branches'));
+        $months = [
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+
+        $currentMonth = (int) date('n');
+        $currentYear = (int) date('Y');
+
+        return view('Admin.Attendance.create', compact('companies', 'branches', 'months', 'currentMonth', 'currentYear'));
     }
 
     /**
-     * Load employees for marking or editing attendance.
+     * Load employees for marking or editing monthly attendance.
      */
     public function loadEmployees(Request $request)
     {
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
-            'attendance_date' => 'required|date',
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|between:2000,2099',
         ], [
             'company_id.required' => 'Please select company.',
             'branch_id.required' => 'Please select branch.',
-            'attendance_date.required' => 'Please select attendance date.',
+            'month.required' => 'Please select month.',
+            'year.required' => 'Please select year.',
         ]);
 
         $companyId = $request->company_id;
         $branchId = $request->branch_id;
-        $attendanceDate = $request->attendance_date;
+        $month = (int) $request->month;
+        $year = (int) $request->year;
 
-        // Check if batch already exists for this Company, Branch, and Date
-        $batch = AttendanceBatch::where('company_id', $companyId)
+        $currentYear = (int) date('Y');
+        $currentMonth = (int) date('n');
+
+        if ($year > $currentYear || ($year == $currentYear && $month > $currentMonth)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Future month attendance cannot be created.',
+            ], 422);
+        }
+
+        // Auto-calculate No. of Days in Month
+        $totalDays = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
+        // Check if Monthly Attendance record already exists
+        $attendanceMonth = AttendanceMonth::where('company_id', $companyId)
             ->where('branch_id', $branchId)
-            ->where('attendance_date', $attendanceDate)
+            ->where('month', $month)
+            ->where('year', $year)
             ->first();
 
-        // Load active employees for the selected Company & Branch
-        $employees = Employee::with('department')
+        // Fetch active employees of selected company & branch
+        $employees = Employee::with('branch')
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId)
             ->where('status', 'active')
-            ->orderBy('employee_code', 'asc')
+            ->orderBy('name', 'asc')
             ->get();
 
-        // If batch exists, map existing attendance records
-        $existingAttendances = collect();
-        if ($batch) {
-            $existingAttendances = Attendance::where('attendance_batch_id', $batch->id)
+        if ($employees->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No active employees found for the selected company and branch.',
+            ], 422);
+        }
+
+        $existingDetails = collect();
+        if ($attendanceMonth) {
+            $existingDetails = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
                 ->get()
                 ->keyBy('employee_id');
         }
 
         $records = [];
         foreach ($employees as $emp) {
-            $att = $existingAttendances->get($emp->id);
+            $detail = $existingDetails->get($emp->id);
+            
+            $leaveTaken = $detail ? (float)$detail->leave_taken : 0;
+            $netPresent = $detail ? (float)$detail->net_present : max(0, $totalDays - $leaveTaken);
+            $leaveNotDeducted = $detail ? (float)$detail->leave_not_deducted : 0;
+            $payableDays = $detail ? (float)$detail->payable_days : ($netPresent + $leaveNotDeducted);
+
             $records[] = [
                 'employee_id' => $emp->id,
-                'employee_code' => $emp->employee_code,
-                'name' => $emp->name,
-                'department_name' => $emp->department ? $emp->department->name : 'N/A',
-                'attendance_status' => $att ? $att->attendance_status : 'Present',
-                'check_in' => $att ? ($att->check_in ? date('H:i', strtotime($att->check_in)) : '09:00') : '09:00',
-                'check_out' => $att ? ($att->check_out ? date('H:i', strtotime($att->check_out)) : '18:00') : '18:00',
-                'remarks' => $att ? $att->remarks : '',
+                'name' => $emp->name ?? 'N/A',
+                'branch_name' => $emp->branch ? $emp->branch->name : 'N/A',
+                'total_days' => $totalDays,
+                'leave_taken' => ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken,
+                'net_present' => ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent,
+                'leave_not_deducted' => ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted,
+                'payable_days' => ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays,
             ];
         }
 
-        $isEditMode = $batch ? true : false;
+        $isEditMode = $attendanceMonth ? true : false;
+        $monthName = Carbon::createFromDate($year, $month, 1)->format('F');
 
-        $html = view('Admin.Attendance.table', compact('records', 'companyId', 'branchId', 'attendanceDate', 'isEditMode', 'batch'))->render();
+        $html = view('Admin.Attendance.table', compact('records', 'companyId', 'branchId', 'month', 'year', 'monthName', 'totalDays', 'isEditMode', 'attendanceMonth'))->render();
 
         return response()->json([
             'status' => true,
             'html' => $html,
             'is_edit' => $isEditMode,
-            'message' => $isEditMode ? 'Existing attendance record loaded.' : 'Active employees loaded for attendance marking.',
+            'message' => $isEditMode ? 'Existing monthly attendance record loaded for editing.' : 'Active employees loaded for attendance marking.',
         ]);
     }
 
     /**
-     * Store or update attendance for employees in a batch.
+     * Store monthly attendance batch using manual property assignments.
      */
     public function store(Request $request)
     {
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
-            'attendance_date' => 'required|date',
-            'attendances' => 'required|array',
-            'attendances.*.employee_id' => 'required|exists:employees,id',
-            'attendances.*.attendance_status' => 'required|in:Present,Absent,Half Day,Leave,Holiday',
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|between:2000,2099',
+            'details' => 'required|array|min:1',
+            'details.*.employee_id' => 'required|exists:employees,id',
+            'details.*.leave_taken' => 'nullable|numeric|min:0',
+            'details.*.leave_not_deducted' => 'nullable|numeric|min:0',
         ], [
             'company_id.required' => 'Please select company.',
             'branch_id.required' => 'Please select branch.',
-            'attendance_date.required' => 'Please select attendance date.',
-            'attendances.required' => 'No employee attendance records provided.',
+            'month.required' => 'Please select month.',
+            'year.required' => 'Please select year.',
+            'details.required' => 'No employee attendance records submitted.',
         ]);
+
+        $month = (int) $request->month;
+        $year = (int) $request->year;
+
+        $currentYear = (int) date('Y');
+        $currentMonth = (int) date('n');
+
+        if ($year > $currentYear || ($year == $currentYear && $month > $currentMonth)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Future month attendance cannot be created.',
+            ], 422);
+        }
+
+        $totalDays = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
+        // Server-Side Validations
+        foreach ($request->details as $index => $empData) {
+            $leaveTaken = (float)($empData['leave_taken'] ?? 0);
+            $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
+
+            $employee = Employee::find($empData['employee_id']);
+            $empName = $employee ? $employee->name : 'Employee #' . ($index + 1);
+
+            if ($leaveTaken < 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Taken for {$empName} cannot be negative.",
+                ], 422);
+            }
+
+            if ($leaveTaken > $totalDays) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Taken for {$empName} ({$leaveTaken} days) cannot be greater than No. of Days in Month ({$totalDays}).",
+                ], 422);
+            }
+
+            if ($leaveNotDeducted < 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Not Deducted for {$empName} cannot be negative.",
+                ], 422);
+            }
+
+            if ($leaveNotDeducted > $leaveTaken) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$leaveTaken} days).",
+                ], 422);
+            }
+        }
 
         DB::beginTransaction();
 
         try {
-            // Check for existing batch or create new one using manual model assignments
-            $batch = AttendanceBatch::where('company_id', $request->company_id)
+            // Find existing AttendanceMonth or create new using manual assignment
+            $attendanceMonth = AttendanceMonth::where('company_id', $request->company_id)
                 ->where('branch_id', $request->branch_id)
-                ->where('attendance_date', $request->attendance_date)
+                ->where('month', $month)
+                ->where('year', $year)
                 ->first();
 
-            if (!$batch) {
-                $batch = new AttendanceBatch();
-                $batch->company_id = $request->company_id;
-                $batch->branch_id = $request->branch_id;
-                $batch->attendance_date = $request->attendance_date;
-                $batch->created_by = auth()->id();
-                $batch->save();
+            if (!$attendanceMonth) {
+                $attendanceMonth = new AttendanceMonth();
+                $attendanceMonth->company_id = $request->company_id;
+                $attendanceMonth->branch_id = $request->branch_id;
+                $attendanceMonth->month = $month;
+                $attendanceMonth->year = $year;
+                $attendanceMonth->status = 'Completed';
+                $attendanceMonth->created_by = auth()->id();
+                $attendanceMonth->save();
             } else {
-                $batch->updated_by = auth()->id();
-                $batch->save();
+                $attendanceMonth->updated_by = auth()->id();
+                $attendanceMonth->save();
             }
 
-            foreach ($request->attendances as $empData) {
+            foreach ($request->details as $empData) {
                 $employeeId = $empData['employee_id'];
-                $status = $empData['attendance_status'];
-                $checkIn = !empty($empData['check_in']) ? $empData['check_in'] : null;
-                $checkOut = !empty($empData['check_out']) ? $empData['check_out'] : null;
-                $remarks = !empty($empData['remarks']) ? $empData['remarks'] : null;
+                $leaveTaken = (float)($empData['leave_taken'] ?? 0);
+                $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
 
-                $attendance = Attendance::where('attendance_batch_id', $batch->id)
+                // Auto formulas:
+                // Net Present = No. of Days in Month - Leave Taken
+                $netPresent = max(0, $totalDays - $leaveTaken);
+                // No. of Days Payable = Net Present + Leave Not Deducted
+                $payableDays = $netPresent + $leaveNotDeducted;
+
+                $detail = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
                     ->where('employee_id', $employeeId)
                     ->first();
 
-                if (!$attendance) {
-                    $attendance = new Attendance();
-                    $attendance->attendance_batch_id = $batch->id;
-                    $attendance->employee_id = $employeeId;
-                    $attendance->created_by = auth()->id();
+                if (!$detail) {
+                    $detail = new AttendanceMonthDetail();
+                    $detail->attendance_month_id = $attendanceMonth->id;
+                    $detail->employee_id = $employeeId;
+                    $detail->created_by = auth()->id();
                 } else {
-                    $attendance->updated_by = auth()->id();
+                    $detail->updated_by = auth()->id();
                 }
 
-                $attendance->attendance_status = $status;
-                $attendance->check_in = $checkIn;
-                $attendance->check_out = $checkOut;
-                $attendance->remarks = $remarks;
-                $attendance->save();
+                $detail->total_days = $totalDays;
+                $detail->leave_taken = ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken;
+                $detail->net_present = ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent;
+                $detail->leave_not_deducted = ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted;
+                $detail->payable_days = ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays;
+                $detail->save();
             }
 
             DB::commit();
 
-            session()->flash('success', 'Attendance saved successfully.');
+            session()->flash('success', 'Monthly attendance saved successfully.');
 
             return response()->json([
                 'status' => true,
-                'message' => 'Attendance saved successfully.',
+                'message' => 'Monthly attendance saved successfully.',
                 'redirect' => route('attendance.index')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'status' => false,
-                'message' => 'An error occurred while saving attendance: ' . $e->getMessage(),
+                'message' => 'An error occurred while saving monthly attendance: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Show form to edit a specific attendance batch.
+     * Display specified monthly attendance summary (View Mode).
+     */
+    public function show($id)
+    {
+        $attendanceMonth = AttendanceMonth::with(['company', 'branch', 'creator', 'details.employee.branch'])->findOrFail($id);
+        $monthName = Carbon::createFromDate($attendanceMonth->year, $attendanceMonth->month, 1)->format('F');
+
+        return view('Admin.Attendance.show', compact('attendanceMonth', 'monthName'));
+    }
+
+    /**
+     * Show form to edit specified monthly attendance batch.
      */
     public function edit($id)
     {
-        $batch = AttendanceBatch::with(['company', 'branch', 'attendances.employee.department'])->findOrFail($id);
+        $attendanceMonth = AttendanceMonth::with(['company', 'branch', 'details.employee.branch'])->findOrFail($id);
+        $monthName = Carbon::createFromDate($attendanceMonth->year, $attendanceMonth->month, 1)->format('F');
 
         $records = [];
-        foreach ($batch->attendances as $att) {
+        foreach ($attendanceMonth->details as $detail) {
+            $emp = $detail->employee;
+            $leaveTaken = (float)$detail->leave_taken;
+            $netPresent = (float)$detail->net_present;
+            $leaveNotDeducted = (float)$detail->leave_not_deducted;
+            $payableDays = (float)$detail->payable_days;
+
             $records[] = [
-                'employee_id' => $att->employee_id,
-                'employee_code' => $att->employee->employee_code ?? 'N/A',
-                'name' => $att->employee->name ?? 'N/A',
-                'department_name' => ($att->employee && $att->employee->department) ? $att->employee->department->name : 'N/A',
-                'attendance_status' => $att->attendance_status,
-                'check_in' => $att->check_in ? date('H:i', strtotime($att->check_in)) : '09:00',
-                'check_out' => $att->check_out ? date('H:i', strtotime($att->check_out)) : '18:00',
-                'remarks' => $att->remarks ?? '',
+                'employee_id' => $detail->employee_id,
+                'name' => $emp ? ($emp->name ?? 'N/A') : 'N/A',
+                'branch_name' => ($emp && $emp->branch) ? $emp->branch->name : 'N/A',
+                'total_days' => $detail->total_days,
+                'leave_taken' => ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken,
+                'net_present' => ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent,
+                'leave_not_deducted' => ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted,
+                'payable_days' => ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays,
             ];
         }
 
-        return view('Admin.Attendance.edit', compact('batch', 'records'));
+        return view('Admin.Attendance.edit', compact('attendanceMonth', 'monthName', 'records'));
     }
 
     /**
-     * Update specified attendance batch.
+     * Update specified monthly attendance batch using manual property assignments.
      */
     public function update(Request $request, $id)
     {
-        $batch = AttendanceBatch::findOrFail($id);
+        $attendanceMonth = AttendanceMonth::findOrFail($id);
 
         $request->validate([
-            'attendances' => 'required|array',
-            'attendances.*.employee_id' => 'required|exists:employees,id',
-            'attendances.*.attendance_status' => 'required|in:Present,Absent,Half Day,Leave,Holiday',
+            'details' => 'required|array|min:1',
+            'details.*.employee_id' => 'required|exists:employees,id',
+            'details.*.leave_taken' => 'nullable|numeric|min:0',
+            'details.*.leave_not_deducted' => 'nullable|numeric|min:0',
         ], [
-            'attendances.required' => 'No employee attendance records provided.',
+            'details.required' => 'No employee attendance records submitted.',
         ]);
+
+        $totalDays = Carbon::createFromDate($attendanceMonth->year, $attendanceMonth->month, 1)->daysInMonth;
+
+        // Server-Side Validations
+        foreach ($request->details as $index => $empData) {
+            $leaveTaken = (float)($empData['leave_taken'] ?? 0);
+            $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
+
+            $employee = Employee::find($empData['employee_id']);
+            $empName = $employee ? $employee->name : 'Employee #' . ($index + 1);
+
+            if ($leaveTaken < 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Taken for {$empName} cannot be negative.",
+                ], 422);
+            }
+
+            if ($leaveTaken > $totalDays) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Taken for {$empName} ({$leaveTaken} days) cannot be greater than No. of Days in Month ({$totalDays}).",
+                ], 422);
+            }
+
+            if ($leaveNotDeducted < 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Not Deducted for {$empName} cannot be negative.",
+                ], 422);
+            }
+
+            if ($leaveNotDeducted > $leaveTaken) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$leaveTaken} days).",
+                ], 422);
+            }
+        }
 
         DB::beginTransaction();
 
         try {
-            $batch->updated_by = auth()->id();
-            $batch->save();
+            $attendanceMonth->updated_by = auth()->id();
+            $attendanceMonth->save();
 
-            foreach ($request->attendances as $empData) {
+            foreach ($request->details as $empData) {
                 $employeeId = $empData['employee_id'];
-                $status = $empData['attendance_status'];
-                $checkIn = !empty($empData['check_in']) ? $empData['check_in'] : null;
-                $checkOut = !empty($empData['check_out']) ? $empData['check_out'] : null;
-                $remarks = !empty($empData['remarks']) ? $empData['remarks'] : null;
+                $leaveTaken = (float)($empData['leave_taken'] ?? 0);
+                $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
 
-                $attendance = Attendance::where('attendance_batch_id', $batch->id)
+                // Auto formulas:
+                $netPresent = max(0, $totalDays - $leaveTaken);
+                $payableDays = $netPresent + $leaveNotDeducted;
+
+                $detail = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
                     ->where('employee_id', $employeeId)
                     ->first();
 
-                if (!$attendance) {
-                    $attendance = new Attendance();
-                    $attendance->attendance_batch_id = $batch->id;
-                    $attendance->employee_id = $employeeId;
-                    $attendance->created_by = auth()->id();
+                if (!$detail) {
+                    $detail = new AttendanceMonthDetail();
+                    $detail->attendance_month_id = $attendanceMonth->id;
+                    $detail->employee_id = $employeeId;
+                    $detail->created_by = auth()->id();
                 } else {
-                    $attendance->updated_by = auth()->id();
+                    $detail->updated_by = auth()->id();
                 }
 
-                $attendance->attendance_status = $status;
-                $attendance->check_in = $checkIn;
-                $attendance->check_out = $checkOut;
-                $attendance->remarks = $remarks;
-                $attendance->save();
+                $detail->total_days = $totalDays;
+                $detail->leave_taken = ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken;
+                $detail->net_present = ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent;
+                $detail->leave_not_deducted = ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted;
+                $detail->payable_days = ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays;
+                $detail->save();
             }
 
             DB::commit();
 
-            session()->flash('success', 'Attendance batch updated successfully.');
+            session()->flash('success', 'Monthly attendance updated successfully.');
             return response()->json([
                 'status' => true,
-                'message' => 'Attendance batch updated successfully.',
+                'message' => 'Monthly attendance updated successfully.',
                 'redirect' => route('attendance.index')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'status' => false,
-                'message' => 'An error occurred while updating attendance: ' . $e->getMessage(),
+                'message' => 'An error occurred while updating monthly attendance: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Remove the specified attendance batch from storage.
+     * Remove the specified monthly attendance batch from storage.
      */
     public function destroy($id)
     {
         DB::beginTransaction();
 
         try {
-            $batch = AttendanceBatch::findOrFail($id);
-            $batch->delete(); // Soft deletes batch and cascade deletes attendances
+            $attendanceMonth = AttendanceMonth::findOrFail($id);
+            $attendanceMonth->delete(); // Soft delete master and cascade soft delete details
 
             DB::commit();
 
             if (request()->ajax()) {
                 return response()->json([
                     'status' => true,
-                    'message' => 'Attendance batch deleted successfully.',
+                    'message' => 'Monthly attendance record deleted successfully.',
                 ]);
             }
 
-            return redirect()->route('attendance.index')->with('success', 'Attendance batch deleted successfully.');
+            return redirect()->route('attendance.index')->with('success', 'Monthly attendance record deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
             if (request()->ajax()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Failed to delete attendance batch: ' . $e->getMessage(),
+                    'message' => 'Failed to delete monthly attendance record: ' . $e->getMessage(),
                 ], 500);
             }
 
-            return redirect()->back()->with('error', 'Failed to delete attendance batch.');
+            return redirect()->back()->with('error', 'Failed to delete monthly attendance record.');
         }
     }
 }
