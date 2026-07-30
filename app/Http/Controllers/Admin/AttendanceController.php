@@ -15,7 +15,7 @@ use Yajra\DataTables\Facades\DataTables;
 class AttendanceController extends Controller
 {
     /**
-     * Display a listing of attendance batches or Yajra DataTables JSON.
+     * Display a listing of attendance history batches (Yajra DataTables).
      */
     public function index(Request $request)
     {
@@ -43,10 +43,13 @@ class AttendanceController extends Controller
                     return date('d-m-Y', strtotime($row->attendance_date));
                 })
                 ->addColumn('employees_count', function ($row) {
-                    return '<span class="badge bg-secondary px-2 py-1">' . $row->attendances_count . ' Employees</span>';
+                    return '<span class="badge bg-secondary px-2 py-1">' . $row->attendances_count . '</span>';
+                })
+                ->addColumn('status', function ($row) {
+                    return '<span class="badge bg-success px-2 py-1">Completed</span>';
                 })
                 ->addColumn('edit', function ($row) {
-                    return '<a href="' . route('attendance.edit', $row->id) . '" class="btn btn-xs btn-primary py-0 px-1" title="Edit">
+                    return '<a href="' . route('attendance.edit', $row->id) . '" class="btn btn-xs btn-primary py-0 px-1 me-1" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>';
                 })
@@ -55,14 +58,22 @@ class AttendanceController extends Controller
                                 <i class="bi bi-trash"></i>
                             </button>';
                 })
-                ->rawColumns(['company_name', 'branch_name', 'employees_count', 'edit', 'delete'])
+                ->rawColumns(['company_name', 'branch_name', 'employees_count', 'status', 'edit', 'delete'])
                 ->make(true);
         }
 
+        return view('Admin.Attendance.index');
+    }
+
+    /**
+     * Show the form for creating / marking attendance.
+     */
+    public function create()
+    {
         $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
         $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
 
-        return view('Admin.Attendance.index', compact('companies', 'branches'));
+        return view('Admin.Attendance.create', compact('companies', 'branches'));
     }
 
     /**
@@ -124,7 +135,6 @@ class AttendanceController extends Controller
         $isEditMode = $batch ? true : false;
 
         $html = view('Admin.Attendance.table', compact('records', 'companyId', 'branchId', 'attendanceDate', 'isEditMode', 'batch'))->render();
-
 
         return response()->json([
             'status' => true,
@@ -203,9 +213,12 @@ class AttendanceController extends Controller
 
             DB::commit();
 
+            session()->flash('success', 'Attendance saved successfully.');
+
             return response()->json([
                 'status' => true,
                 'message' => 'Attendance saved successfully.',
+                'redirect' => route('attendance.index')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

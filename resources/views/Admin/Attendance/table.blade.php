@@ -57,12 +57,12 @@
                                     <td class="fw-semibold text-body">{{ $rec['name'] }}</td>
                                     <td>{{ $rec['department_name'] }}</td>
                                     <td>
-                                        <select class="form-select form-select-sm fw-semibold status-select" name="attendances[{{ $index }}][attendance_status]" required>
-                                            <option value="Present" {{ $rec['attendance_status'] == 'Present' ? 'selected' : '' }}>🟢 Present</option>
-                                            <option value="Absent" {{ $rec['attendance_status'] == 'Absent' ? 'selected' : '' }}>🔴 Absent</option>
-                                            <option value="Half Day" {{ $rec['attendance_status'] == 'Half Day' ? 'selected' : '' }}>🟡 Half Day</option>
-                                            <option value="Leave" {{ $rec['attendance_status'] == 'Leave' ? 'selected' : '' }}>🔵 Leave</option>
-                                            <option value="Holiday" {{ $rec['attendance_status'] == 'Holiday' ? 'selected' : '' }}>⚫ Holiday</option>
+                                        <select class="form-select form-select-sm fw-bold status-select" name="attendances[{{ $index }}][attendance_status]" required>
+                                            <option value="Present" class="text-success fw-bold" {{ $rec['attendance_status'] == 'Present' ? 'selected' : '' }}>● Present</option>
+                                            <option value="Absent" class="text-danger fw-bold" {{ $rec['attendance_status'] == 'Absent' ? 'selected' : '' }}>● Absent</option>
+                                            <option value="Half Day" class="text-warning fw-bold" {{ $rec['attendance_status'] == 'Half Day' ? 'selected' : '' }}>● Half Day</option>
+                                            <option value="Leave" class="text-info fw-bold" {{ $rec['attendance_status'] == 'Leave' ? 'selected' : '' }}>● Leave</option>
+                                            <option value="Holiday" class="text-dark fw-bold" {{ $rec['attendance_status'] == 'Holiday' ? 'selected' : '' }}>● Holiday</option>
                                         </select>
                                     </td>
                                     <td>
@@ -89,3 +89,31 @@
         @endif
     </div>
 </div>
+
+<script>
+    (function() {
+        function updateStatusSelectStyle(el) {
+            let val = $(el).val();
+            $(el).removeClass('bg-success-subtle text-success border-success bg-danger-subtle text-danger border-danger bg-warning-subtle text-dark border-warning bg-info-subtle text-info border-info bg-secondary-subtle text-dark border-secondary');
+            if (val === 'Present') {
+                $(el).addClass('bg-success-subtle text-success border-success');
+            } else if (val === 'Absent') {
+                $(el).addClass('bg-danger-subtle text-danger border-danger');
+            } else if (val === 'Half Day') {
+                $(el).addClass('bg-warning-subtle text-dark border-warning');
+            } else if (val === 'Leave') {
+                $(el).addClass('bg-info-subtle text-info border-info');
+            } else if (val === 'Holiday') {
+                $(el).addClass('bg-secondary-subtle text-dark border-secondary');
+            }
+        }
+
+        $('.status-select').each(function() {
+            updateStatusSelectStyle(this);
+        });
+
+        $(document).off('change', '.status-select').on('change', '.status-select', function() {
+            updateStatusSelectStyle(this);
+        });
+    })();
+</script>
