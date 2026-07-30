@@ -36,6 +36,14 @@
             </a>
         </li>
 
+        <li>
+            <a href="{{ route('attendance.index') }}" class="{{ request()->routeIs('attendance.*') ? 'active' : '' }}">
+                <i class="bi bi-calendar-check"></i>
+                <span>Attendance</span>
+            </a>
+        </li>
+
+
         {{-- <li>
             <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i>

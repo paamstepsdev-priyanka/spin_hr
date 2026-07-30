@@ -47,4 +47,13 @@ class Branch extends Model
     {
         return $this->hasMany(Employee::class);
     }
+
+    /**
+     * Get the attendance batches for the branch.
+     */
+    public function attendanceBatches()
+    {
+        return $this->hasMany(AttendanceBatch::class);
+    }
 }
+

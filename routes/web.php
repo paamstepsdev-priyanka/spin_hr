@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\EmployeeSalaryController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,4 +44,13 @@ Route::middleware('auth')->group(function () {
     Route::get('companies/{company}/get-branches', [EmployeeController::class, 'getBranches'])->name('companies.get-branches');
     Route::resource('employees', EmployeeController::class);
     Route::resource('employees.salaries', EmployeeSalaryController::class);
+
+    // Attendance
+    Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('attendance/load-employees', [AttendanceController::class, 'loadEmployees'])->name('attendance.loadEmployees');
+    Route::post('attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+    Route::get('attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
+    Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
+    Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
 });
+

@@ -43,5 +43,14 @@ class Company extends Model
     {
         return $this->hasMany(Employee::class);
     }
+
+    /**
+     * Get the attendance batches for the company.
+     */
+    public function attendanceBatches()
+    {
+        return $this->hasMany(AttendanceBatch::class);
+    }
 }
+
 
