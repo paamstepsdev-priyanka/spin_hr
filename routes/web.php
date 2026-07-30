@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
     // Attendance Report
     Route::get('attendance-report', [AttendanceReportController::class, 'index'])->name('attendance-report.index');
     Route::get('attendance-report/get-branches/{company}', [AttendanceReportController::class, 'getBranches'])->name('attendance-report.get-branches');
-    Route::get('attendance-report/get-employees/{branch}', [AttendanceReportController::class, 'getEmployees'])->name('attendance-report.get-employees');
+    Route::get('attendance-report/get-employees', [AttendanceReportController::class, 'getEmployees'])->name('attendance-report.get-employees');
     Route::post('attendance-report/report', [AttendanceReportController::class, 'report'])->name('attendance-report.report');
+    Route::get('attendance-report/export-pdf', [AttendanceReportController::class, 'exportPdf'])->name('attendance-report.export-pdf');
+    Route::get('attendance-report/export-excel', [AttendanceReportController::class, 'exportExcel'])->name('attendance-report.export-excel');
 });

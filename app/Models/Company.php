@@ -45,11 +45,11 @@ class Company extends Model
     }
 
     /**
-     * Get the attendance batches for the company.
+     * Get the monthly attendance records for the company.
      */
-    public function attendanceBatches()
+    public function attendanceMonths()
     {
-        return $this->hasMany(AttendanceBatch::class);
+        return $this->hasMany(AttendanceMonth::class);
     }
 }
 

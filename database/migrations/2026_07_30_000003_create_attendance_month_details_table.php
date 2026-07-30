@@ -11,14 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('attendances', function (Blueprint $table) {
+        Schema::create('attendance_month_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('attendance_batch_id')->constrained('attendance_batches')->onDelete('cascade');
+            $table->foreignId('attendance_month_id')->constrained('attendance_months')->onDelete('cascade');
             $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
-            $table->string('attendance_status')->default('Present');
-            $table->time('check_in')->nullable();
-            $table->time('check_out')->nullable();
-            $table->text('remarks')->nullable();
+            $table->unsignedTinyInteger('total_days')->nullable();
+            $table->decimal('leave_taken')->nullable();
+            $table->decimal('net_present')->nullable();
+            $table->decimal('leave_not_deducted')->nullable();
+            $table->decimal('payable_days')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->unsignedBigInteger('deleted_by')->nullable();
@@ -36,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('attendances');
+        Schema::dropIfExists('attendance_month_details');
     }
 };

@@ -160,6 +160,9 @@ class AttendanceController extends Controller
 
         // Fetch active employees of selected company & branch
         $employees = Employee::with('branch')
+            ->withExists(['salaries as salary_exists' => function ($query) {
+                $query->where('status', 'active');
+            }])
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId)
             ->where('status', 'active')
@@ -192,6 +195,7 @@ class AttendanceController extends Controller
             $records[] = [
                 'employee_id' => $emp->id,
                 'name' => $emp->name ?? 'N/A',
+                'salary_exists' => (bool) $emp->salary_exists,
                 'branch_name' => $emp->branch ? $emp->branch->name : 'N/A',
                 'total_days' => $totalDays,
                 'leave_taken' => ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken,
@@ -367,7 +371,18 @@ class AttendanceController extends Controller
      */
     public function show($id)
     {
-        $attendanceMonth = AttendanceMonth::with(['company', 'branch', 'creator', 'details.employee.branch'])->findOrFail($id);
+        $attendanceMonth = AttendanceMonth::with([
+            'company',
+            'branch',
+            'creator',
+            'details.employee' => function ($q) {
+                $q->withExists(['salaries as salary_exists' => function ($sq) {
+                    $sq->where('status', 'active');
+                }]);
+            },
+            'details.employee.branch'
+        ])->findOrFail($id);
+
         $monthName = Carbon::createFromDate($attendanceMonth->year, $attendanceMonth->month, 1)->format('F');
 
         return view('Admin.Attendance.show', compact('attendanceMonth', 'monthName'));
@@ -378,7 +393,17 @@ class AttendanceController extends Controller
      */
     public function edit($id)
     {
-        $attendanceMonth = AttendanceMonth::with(['company', 'branch', 'details.employee.branch'])->findOrFail($id);
+        $attendanceMonth = AttendanceMonth::with([
+            'company',
+            'branch',
+            'details.employee' => function ($q) {
+                $q->withExists(['salaries as salary_exists' => function ($sq) {
+                    $sq->where('status', 'active');
+                }]);
+            },
+            'details.employee.branch'
+        ])->findOrFail($id);
+
         $monthName = Carbon::createFromDate($attendanceMonth->year, $attendanceMonth->month, 1)->format('F');
 
         $records = [];
@@ -392,6 +417,7 @@ class AttendanceController extends Controller
             $records[] = [
                 'employee_id' => $detail->employee_id,
                 'name' => $emp ? ($emp->name ?? 'N/A') : 'N/A',
+                'salary_exists' => (bool) ($emp->salary_exists ?? false),
                 'branch_name' => ($emp && $emp->branch) ? $emp->branch->name : 'N/A',
                 'total_days' => $detail->total_days,
                 'leave_taken' => ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken,

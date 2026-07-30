@@ -64,6 +64,7 @@
                             <tr>
                                 <th scope="col" style="width: 40px;">#</th>
                                 <th scope="col" class="text-start">Employee Name</th>
+                                <th scope="col" class="text-center" style="width: 110px;">Salary</th>
                                 <th scope="col" class="text-start">Branch</th>
                                 <th scope="col" class="text-center" style="width: 150px;">No. of Days in Month</th>
                                 <th scope="col" class="text-center text-danger" style="width: 130px;">Leave Taken</th>
@@ -77,6 +78,21 @@
                                 <tr>
                                     <td class="text-center text-muted">{{ $index + 1 }}</td>
                                     <td class="fw-semibold text-body text-start">{{ $detail->employee->name ?? 'N/A' }}</td>
+                                    <td class="text-center">
+                                        @if(!empty($detail->employee->salary_exists))
+                                            <button type="button" class="btn btn-success btn-sm py-0 px-2 small text-nowrap" disabled style="font-size: 0.75rem;">
+                                                Salary Set
+                                            </button>
+                                        @else
+                                            <a href="{{ route('employees.salaries.index', $detail->employee_id) }}" 
+                                               class="btn btn-danger btn-sm py-0 px-2 small text-nowrap" 
+                                               target="_blank" 
+                                               title="Salary is not configured for this employee."
+                                               data-bs-toggle="tooltip">
+                                                Set Salary
+                                            </a>
+                                        @endif
+                                    </td>
                                     <td class="text-muted text-start">{{ $detail->employee->branch->name ?? 'N/A' }}</td>
                                     <td class="text-center fw-bold bg-light">{{ $detail->total_days }}</td>
                                     <td class="text-center text-danger fw-semibold">{{ (float)$detail->leave_taken }}</td>
@@ -86,7 +102,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-3">No employee details available.</td>
+                                    <td colspan="9" class="text-center text-muted py-3">No employee details available.</td>
                                 </tr>
                             @endforelse
                         </tbody>

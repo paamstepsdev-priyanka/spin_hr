@@ -102,14 +102,6 @@ class Employee extends Model
     }
 
     /**
-     * Get the attendance records for the employee.
-     */
-    public function attendances(): HasMany
-    {
-        return $this->hasMany(Attendance::class);
-    }
-
-    /**
      * Get the monthly attendance details for the employee.
      */
     public function monthlyAttendanceDetails(): HasMany

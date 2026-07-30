@@ -49,11 +49,11 @@ class Branch extends Model
     }
 
     /**
-     * Get the attendance batches for the branch.
+     * Get the monthly attendance records for the branch.
      */
-    public function attendanceBatches()
+    public function attendanceMonths()
     {
-        return $this->hasMany(AttendanceBatch::class);
+        return $this->hasMany(AttendanceMonth::class);
     }
 }
 

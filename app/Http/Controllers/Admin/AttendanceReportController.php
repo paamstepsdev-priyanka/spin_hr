@@ -39,95 +39,193 @@ class AttendanceReportController extends Controller
     }
 
     /**
-     * Get active employees for a specific branch (AJAX).
+     * Get active employees for a company / branch (AJAX).
      */
-    public function getEmployees($branchId)
+    public function getEmployees(Request $request)
     {
-        $employees = Employee::where('branch_id', $branchId)
-            ->where('status', 'active')
-            ->orderBy('employee_code', 'asc')
-            ->get(['id', 'employee_code', 'name']);
+        $query = Employee::where('status', 'active');
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        $employees = $query->orderBy('employee_code', 'asc')->get(['id', 'employee_code', 'name']);
 
         return response()->json($employees);
     }
 
     /**
-     * Generate monthly attendance report.
+     * Build dynamic attendance query based on applied filters.
+     */
+    protected function getFilteredQuery(Request $request)
+    {
+        return AttendanceMonthDetail::query()
+            ->with([
+                'attendanceMonth.company',
+                'attendanceMonth.branch',
+                'employee.department',
+                'employee.company',
+                'employee.branch'
+            ])
+            ->whereHas('attendanceMonth', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id)
+                  ->where('month', (int) $request->month)
+                  ->where('year', (int) $request->year);
+
+                if ($request->filled('branch_id')) {
+                    $q->where('branch_id', $request->branch_id);
+                }
+            })
+            ->when($request->filled('employee_id'), function ($q) use ($request) {
+                $q->where('employee_id', $request->employee_id);
+            });
+    }
+
+    /**
+     * Generate monthly attendance report (AJAX).
      */
     public function report(Request $request)
     {
         $request->validate([
             'company_id' => 'required|exists:companies,id',
-            'branch_id' => 'required|exists:branches,id',
-            'employee_id' => 'required|exists:employees,id',
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|between:2000,2099',
+            'branch_id' => 'nullable|exists:branches,id',
+            'employee_id' => 'nullable|exists:employees,id',
         ], [
             'company_id.required' => 'Company is required.',
-            'branch_id.required' => 'Branch is required.',
-            'employee_id.required' => 'Employee is required.',
             'month.required' => 'Month is required.',
             'year.required' => 'Year is required.',
         ]);
 
-        $employee = Employee::with(['company', 'branch', 'department'])->findOrFail($request->employee_id);
+        $records = $this->getFilteredQuery($request)->get();
+
+        $company = Company::find($request->company_id);
+        $branch = $request->filled('branch_id') ? Branch::find($request->branch_id) : null;
+        $employee = $request->filled('employee_id') ? Employee::find($request->employee_id) : null;
         $month = (int) $request->month;
         $year = (int) $request->year;
-
-        $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
-
-        // Fetch monthly attendance summary if available
-        $attendanceMonth = AttendanceMonth::where('company_id', $request->company_id)
-            ->where('branch_id', $request->branch_id)
-            ->where('month', $month)
-            ->where('year', $year)
-            ->first();
-
-        $detail = null;
-        if ($attendanceMonth) {
-            $detail = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
-                ->where('employee_id', $employee->id)
-                ->first();
-        }
-
-        $summary = [
-            'total_calendar_days' => $daysInMonth,
-            'working_days' => $daysInMonth,
-            'present' => $detail ? (float)$detail->present_days : 0,
-            'absent' => $detail ? (float)$detail->absent_days : 0,
-            'leave' => $detail ? (float)$detail->paid_leave : 0,
-            'lwp' => $detail ? (float)$detail->lwp : 0,
-            'half_day' => $detail ? (float)$detail->half_days : 0,
-            'holiday' => $detail ? (float)$detail->holidays : 0,
-            'overtime_hours' => $detail ? (float)$detail->overtime_hours : 0,
-            'overtime_amount' => $detail ? (float)$detail->overtime_amount : 0,
-            'payable_days' => $detail ? (float)$detail->payable_days : 0,
-        ];
-
-        $summary['total_working_hours_formatted'] = '-';
-        $summary['overtime_hours_formatted'] = sprintf('%.1f Hours', $summary['overtime_hours']);
-
-        $dailyLogs = [];
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $dateObj = Carbon::createFromDate($year, $month, $day);
-            $dailyLogs[] = [
-                'date' => $dateObj->format('d-M-Y'),
-                'day' => $dateObj->format('D'),
-                'status' => $detail ? 'Monthly Recorded' : 'Not Marked',
-                'check_in' => '-',
-                'check_out' => '-',
-                'working_hours' => '-',
-                'remarks' => $detail ? ($detail->remarks ?? '-') : '-',
-            ];
-        }
-
         $monthName = Carbon::createFromDate($year, $month, 1)->format('F');
 
-        $html = view('Admin.AttendanceReport.report', compact('employee', 'month', 'year', 'monthName', 'dailyLogs', 'summary'))->render();
+        $html = view('Admin.AttendanceReport.report', compact('records', 'company', 'branch', 'employee', 'month', 'year', 'monthName'))->render();
 
         return response()->json([
             'status' => true,
             'html' => $html,
+            'count' => $records->count(),
         ]);
+    }
+
+    /**
+     * Export attendance report to Excel (CSV).
+     */
+    public function exportExcel(Request $request)
+    {
+        $request->validate([
+            'company_id' => 'required|exists:companies,id',
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|between:2000,2099',
+            'branch_id' => 'nullable|exists:branches,id',
+            'employee_id' => 'nullable|exists:employees,id',
+        ]);
+
+        $records = $this->getFilteredQuery($request)->get();
+
+        $monthName = Carbon::createFromDate((int)$request->year, (int)$request->month, 1)->format('F');
+        $fileName = 'Attendance_Report_' . $monthName . '_' . $request->year . '.csv';
+
+        $headers = [
+            "Content-type" => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename={$fileName}",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $columns = [
+            'Employee Code',
+            'Employee Name',
+            'Company',
+            'Branch',
+            'Department',
+            'Month',
+            'Year',
+            'No. of Days in Month',
+            'Leave Taken',
+            'Net Present',
+            'Leave Not Deducted',
+            'No. of Days Payable'
+        ];
+
+        $callback = function () use ($records, $columns, $monthName, $request) {
+            $file = fopen('php://output', 'w');
+            // Add UTF-8 BOM for proper Excel encoding
+            fputs($file, "\xEF\xBB\xBF");
+            fputcsv($file, $columns);
+
+            foreach ($records as $record) {
+                $empCode = $record->employee->employee_code ?? '-';
+                $empName = $record->employee->name ?? '-';
+                $companyName = $record->attendanceMonth->company->name ?? ($record->employee->company->name ?? '-');
+                $branchName = $record->attendanceMonth->branch->name ?? ($record->employee->branch->name ?? '-');
+                $deptName = $record->employee->department->name ?? '-';
+                $month = $monthName;
+                $year = $request->year;
+
+                $totalDays = (int) $record->total_days;
+                $leaveTaken = (int) $record->leave_taken;
+                $netPresent = (int) $record->net_present;
+                $leaveNotDeducted = (int) $record->leave_not_deducted;
+                $payableDays = (int) $record->payable_days;
+
+                fputcsv($file, [
+                    $empCode,
+                    $empName,
+                    $companyName,
+                    $branchName,
+                    $deptName,
+                    $month,
+                    $year,
+                    $totalDays,
+                    $leaveTaken,
+                    $netPresent,
+                    $leaveNotDeducted,
+                    $payableDays
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Export attendance report to PDF (Printable view).
+     */
+    public function exportPdf(Request $request)
+    {
+        $request->validate([
+            'company_id' => 'required|exists:companies,id',
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|between:2000,2099',
+            'branch_id' => 'nullable|exists:branches,id',
+            'employee_id' => 'nullable|exists:employees,id',
+        ]);
+
+        $records = $this->getFilteredQuery($request)->get();
+
+        $company = Company::find($request->company_id);
+        $branch = $request->filled('branch_id') ? Branch::find($request->branch_id) : null;
+        $employee = $request->filled('employee_id') ? Employee::find($request->employee_id) : null;
+        $month = (int) $request->month;
+        $year = (int) $request->year;
+        $monthName = Carbon::createFromDate($year, $month, 1)->format('F');
+
+        return view('Admin.AttendanceReport.pdf', compact('records', 'company', 'branch', 'employee', 'month', 'year', 'monthName'));
     }
 }

@@ -17,6 +17,7 @@
                     <thead class="table-light align-middle text-center fw-bold">
                         <tr>
                             <th scope="col" style="min-width: 180px;" class="text-start">Employee Name</th>
+                            <th scope="col" style="width: 110px;" class="text-center">Salary</th>
                             <th scope="col" style="min-width: 140px;" class="text-start">Branch</th>
                             <th scope="col" style="width: 150px;" class="bg-light">No. of Days in Month</th>
                             <th scope="col" style="width: 130px;">Leave Taken <span class="text-danger">*</span></th>
@@ -31,6 +32,21 @@
                                 <input type="hidden" name="details[{{ $index }}][employee_id]" value="{{ $rec['employee_id'] }}">
                                 
                                 <td class="fw-semibold text-body text-start">{{ $rec['name'] }}</td>
+                                <td class="text-center">
+                                    @if(!empty($rec['salary_exists']))
+                                        <button type="button" class="btn btn-success btn-sm py-0 px-2 small text-nowrap" disabled style="font-size: 0.75rem;">
+                                            Salary Set
+                                        </button>
+                                    @else
+                                        <a href="{{ route('employees.salaries.index', $rec['employee_id']) }}" 
+                                           class="btn btn-danger btn-sm py-0 px-2 small text-nowrap" 
+                                           target="_blank" 
+                                           title="Salary is not configured for this employee."
+                                           data-bs-toggle="tooltip">
+                                            Set Salary
+                                        </a>
+                                    @endif
+                                </td>
                                 <td class="text-muted text-start">{{ $rec['branch_name'] }}</td>
                                 
                                 <td class="text-center bg-light">

@@ -34,8 +34,8 @@
                 <form id="attendance-report-form">
                     @csrf
                     <div class="row g-3 align-items-end">
-                        <!-- Company -->
-                        <div class="col-md-2">
+                        <!-- Company (Required) -->
+                        <div class="col-md-3">
                             <label for="company_id" class="form-label small fw-semibold">Company <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
                                 <option value="">Select Company</option>
@@ -46,25 +46,25 @@
                             <div class="invalid-feedback small" id="err-company_id">Company is required.</div>
                         </div>
 
-                        <!-- Branch -->
+                        <!-- Branch (Optional) -->
                         <div class="col-md-2">
-                            <label for="branch_id" class="form-label small fw-semibold">Branch <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm select2" id="branch_id" name="branch_id" required>
-                                <option value="">Select Branch</option>
+                            <label for="branch_id" class="form-label small fw-semibold">Branch</label>
+                            <select class="form-select form-select-sm select2" id="branch_id" name="branch_id">
+                                <option value="">All Branches</option>
                             </select>
-                            <div class="invalid-feedback small" id="err-branch_id">Branch is required.</div>
+                            <div class="invalid-feedback small" id="err-branch_id"></div>
                         </div>
 
-                        <!-- Employee -->
+                        <!-- Employee (Optional) -->
                         <div class="col-md-3">
-                            <label for="employee_id" class="form-label small fw-semibold">Employee <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm select2" id="employee_id" name="employee_id" required>
-                                <option value="">Select Employee</option>
+                            <label for="employee_id" class="form-label small fw-semibold">Employee</label>
+                            <select class="form-select form-select-sm select2" id="employee_id" name="employee_id">
+                                <option value="">All Employees</option>
                             </select>
-                            <div class="invalid-feedback small" id="err-employee_id">Employee is required.</div>
+                            <div class="invalid-feedback small" id="err-employee_id"></div>
                         </div>
 
-                        <!-- Month -->
+                        <!-- Month (Required) -->
                         <div class="col-md-2">
                             <label for="month" class="form-label small fw-semibold">Month <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="month" name="month" required>
@@ -77,11 +77,11 @@
                             <div class="invalid-feedback small" id="err-month">Month is required.</div>
                         </div>
 
-                        <!-- Year -->
-                        <div class="col-md-1">
+                        <!-- Year (Required) -->
+                        <div class="col-md-2">
                             <label for="year" class="form-label small fw-semibold">Year <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="year" name="year" required>
-                                @for($y = date('Y'); $y >= 2024; $y--)
+                                @for($y = date('Y'); $y >= 2020; $y--)
                                     <option value="{{ $y }}" {{ $y == $currentYear ? 'selected' : '' }}>{{ $y }}</option>
                                 @endfor
                             </select>
@@ -89,8 +89,8 @@
                         </div>
 
                         <!-- View Report Button -->
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold" id="btn-view-report">
+                        <div class="col-md-12 text-end">
+                            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold" id="btn-view-report">
                                 <i class="bi bi-file-earmark-text me-1"></i> View Report
                             </button>
                         </div>
@@ -111,20 +111,47 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
-        // Initialize Select2 on all filter selects
+        // Initialize Select2 on filter selects
         $('.select2').select2({
             theme: 'bootstrap-5',
             width: '100%'
         });
 
-        // Cascade 1: Company -> Load Branches
+        // Load Employees helper
+        function loadEmployees(companyId, branchId) {
+            let empSelect = $('#employee_id');
+            empSelect.html('<option value="">Loading employees...</option>').trigger('change');
+
+            if (companyId) {
+                $.ajax({
+                    url: "{{ route('attendance-report.get-employees') }}",
+                    type: 'GET',
+                    data: {
+                        company_id: companyId,
+                        branch_id: branchId || ''
+                    },
+                    success: function(employees) {
+                        empSelect.html('<option value="">All Employees</option>');
+                        $.each(employees, function(key, emp) {
+                            empSelect.append('<option value="' + emp.id + '">' + emp.employee_code + ' - ' + emp.name + '</option>');
+                        });
+                        empSelect.trigger('change');
+                    },
+                    error: function() {
+                        empSelect.html('<option value="">All Employees</option>').trigger('change');
+                    }
+                });
+            } else {
+                empSelect.html('<option value="">All Employees</option>').trigger('change');
+            }
+        }
+
+        // Cascade 1: Company -> Load Branches & Employees
         $('#company_id').on('change', function() {
             let companyId = $(this).val();
             let branchSelect = $('#branch_id');
-            let empSelect = $('#employee_id');
 
             branchSelect.html('<option value="">Loading branches...</option>').trigger('change');
-            empSelect.html('<option value="">Select Employee</option>').trigger('change');
 
             if (companyId) {
                 let url = "{{ route('attendance-report.get-branches', ':company') }}".replace(':company', companyId);
@@ -132,46 +159,30 @@
                     url: url,
                     type: 'GET',
                     success: function(branches) {
-                        branchSelect.html('<option value="">Select Branch</option>');
+                        branchSelect.html('<option value="">All Branches</option>');
                         $.each(branches, function(key, branch) {
                             branchSelect.append('<option value="' + branch.id + '">' + branch.name + '</option>');
                         });
                         branchSelect.trigger('change');
                     },
                     error: function() {
-                        branchSelect.html('<option value="">Select Branch</option>').trigger('change');
+                        branchSelect.html('<option value="">All Branches</option>').trigger('change');
                     }
                 });
+
+                loadEmployees(companyId, '');
             } else {
-                branchSelect.html('<option value="">Select Branch</option>').trigger('change');
+                branchSelect.html('<option value="">All Branches</option>').trigger('change');
+                loadEmployees('', '');
             }
         });
 
-        // Cascade 2: Branch -> Load Employees
+        // Cascade 2: Branch -> Load Branch-Specific Employees
         $('#branch_id').on('change', function() {
+            let companyId = $('#company_id').val();
             let branchId = $(this).val();
-            let empSelect = $('#employee_id');
-
-            empSelect.html('<option value="">Loading employees...</option>').trigger('change');
-
-            if (branchId) {
-                let url = "{{ route('attendance-report.get-employees', ':branch') }}".replace(':branch', branchId);
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    success: function(employees) {
-                        empSelect.html('<option value="">Select Employee</option>');
-                        $.each(employees, function(key, emp) {
-                            empSelect.append('<option value="' + emp.id + '">' + emp.employee_code + ' - ' + emp.name + '</option>');
-                        });
-                        empSelect.trigger('change');
-                    },
-                    error: function() {
-                        empSelect.html('<option value="">Select Employee</option>').trigger('change');
-                    }
-                });
-            } else {
-                empSelect.html('<option value="">Select Employee</option>').trigger('change');
+            if (companyId) {
+                loadEmployees(companyId, branchId);
             }
         });
 
