@@ -23,6 +23,7 @@ class EmployeeController extends Controller
     {
         if ($request->ajax()) {
             $employees = Employee::with(['company', 'branch', 'department'])
+                ->withCount('salaries')
                 ->when($request->filled('company_id'), function ($query) use ($request) {
                     return $query->where('company_id', $request->company_id);
                 })
@@ -49,18 +50,20 @@ class EmployeeController extends Controller
                     return $row->department ? e($row->department->name) : '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('salary', function ($row) {
-                    return '<a href="' . route('employees.salaries.index', $row->id) . '" class="btn btn-xs btn-outline-info py-0 px-2 fw-semibold" title="Manage Salary">
-                                Manage Salary
-                            </a>';
+                    return '<a href="' . route('employees.salaries.index', $row->id) . '" 
+                        class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold" 
+                        title="Manage Salary">
+                        Salary(' . $row->salaries_count . ')
+                    </a>';
                 })
                 ->addColumn('edit', function ($row) {
-                    return '<a href="' . route('employees.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
-                                Edit
+                    return '<a href="' . route('employees.edit', $row->id) . '" class="btn btn-xs btn-primary py-0 px-1" title="Edit">
+                                <i class="bi bi-pencil"></i>
                             </a>';
                 })
                 ->addColumn('delete', function ($row) {
-                    return '<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="' . route('employees.destroy', $row->id) . '" title="Delete">
-                                Delete
+                    return '<button type="button" class="btn btn-xs btn-danger text-white py-0 px-1 btn-delete" data-url="' . route('employees.destroy', $row->id) . '" title="Delete">
+                                <i class="bi bi-trash"></i>
                             </button>';
                 })
                 ->editColumn('status', function ($row) {

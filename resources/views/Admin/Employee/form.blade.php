@@ -62,10 +62,7 @@
                 <select class="form-select" id="employment_type" name="employment_type">
                     <option value="">Select Type</option>
                     <option value="Permanent" {{ isset($employee) && $employee->employment_type === 'Permanent' ? 'selected' : '' }}>Permanent</option>
-                    <option value="Contract" {{ isset($employee) && $employee->employment_type === 'Contract' ? 'selected' : '' }}>Contract</option>
-                    <option value="Probation" {{ isset($employee) && $employee->employment_type === 'Probation' ? 'selected' : '' }}>Probation</option>
-                    <option value="Intern" {{ isset($employee) && $employee->employment_type === 'Intern' ? 'selected' : '' }}>Intern</option>
-                    <option value="Part-time" {{ isset($employee) && $employee->employment_type === 'Part-time' ? 'selected' : '' }}>Part-time</option>
+                    <option value="Consultant" {{ isset($employee) && $employee->employment_type === 'Consultant' ? 'selected' : '' }}>Consultant</option>
                 </select>
                 <div class="text-danger small mt-1" id="employment_type-error"></div>
             </div>

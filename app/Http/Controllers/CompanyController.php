@@ -21,16 +21,16 @@ class CompanyController extends Controller
             return DataTables::of($companies)
                 ->addIndexColumn()
                 ->addColumn('branches', function ($row) {
-                    return '<a href="' . route('company.branches.index', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold" title="Branches">
-                                Branches (' . $row->branches_count . ')
-                            </a>';
+                    return '<a href="' . route('company.branches.index', $row->id) . '" 
+                class="btn btn-xs btn-primary py-0 px-1 fw-semibold" 
+                title="Branches">
+                Branch(' . $row->branches_count . ')
+            </a>';
                 })
                 ->addColumn('edit', function ($row) {
-                    return '<div class="btn-group btn-group-sm" role="group">
-                                <a href="' . route('companies.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
-                                    Edit
-                                </a>
-                            </div>';
+                    return '<a href="' . route('companies.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>';
                 })
                 ->editColumn('status', function ($row) {
                     $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger';

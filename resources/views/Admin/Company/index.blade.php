@@ -40,8 +40,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="fw-bold text-center" style="width: 40px;">#</th>
-                                <th scope="col" class="fw-bold text-center pe-2" style="width: 80px;">Edit</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 100px;">Branches</th>
+                                <th scope="col" class="fw-bold text-center pe-2" style="width: 20px;">Edit</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 90px;">Branches</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 80px;">Status</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 60px;">Logo</th>
                                 <th scope="col" class="fw-bold">Company Name</th>

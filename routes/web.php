@@ -7,7 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Admin\EmployeeSalaryController;
+use App\Http\Controllers\EmployeeSalaryController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login

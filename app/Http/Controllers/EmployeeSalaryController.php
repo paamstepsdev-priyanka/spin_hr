@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
@@ -46,12 +46,12 @@ class EmployeeSalaryController extends Controller
                 })
                 ->addColumn('edit', function ($row) use ($employee) {
                     return '<a href="' . route('employees.salaries.edit', [$employee->id, $row->id]) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
-                                Edit
+                                <i class="bi bi-pencil"></i>
                             </a>';
                 })
                 ->addColumn('delete', function ($row) use ($employee) {
                     return '<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 btn-delete" data-url="' . route('employees.salaries.destroy', [$employee->id, $row->id]) . '" title="Delete">
-                                Delete
+                                <i class="bi bi-trash"></i>
                             </button>';
                 })
 
@@ -77,8 +77,8 @@ class EmployeeSalaryController extends Controller
     {
         $request->validate([
             'basic_salary' => 'required|numeric|min:0',
-            'variable_allowance' => 'required|numeric|min:0',
-            'hra' => 'required|numeric|min:0',
+            'variable_allowance' => 'nullable|numeric|min:0',
+            'hra' => 'nullable|numeric|min:0',
             'conveyance_allowance' => 'nullable|numeric|min:0',
             'medical_allowance' => 'nullable|numeric|min:0',
             'special_allowance' => 'nullable|numeric|min:0',
@@ -94,9 +94,7 @@ class EmployeeSalaryController extends Controller
         ], [
             'basic_salary.required' => 'Basic salary is required.',
             'basic_salary.numeric' => 'Basic salary must be a number.',
-            'variable_allowance.required' => 'Variable allowance is required.',
             'variable_allowance.numeric' => 'Variable allowance must be a number.',
-            'hra.required' => 'HRA is required.',
             'hra.numeric' => 'HRA must be a number.',
             'effective_from.required' => 'Effective from date is required.',
             'effective_from.date' => 'Enter a valid effective from date.',
@@ -156,8 +154,8 @@ class EmployeeSalaryController extends Controller
     {
         $request->validate([
             'basic_salary' => 'required|numeric|min:0',
-            'variable_allowance' => 'required|numeric|min:0',
-            'hra' => 'required|numeric|min:0',
+            'variable_allowance' => 'nullable|numeric|min:0',
+            'hra' => 'nullable|numeric|min:0',
             'conveyance_allowance' => 'nullable|numeric|min:0',
             'medical_allowance' => 'nullable|numeric|min:0',
             'special_allowance' => 'nullable|numeric|min:0',
@@ -173,9 +171,7 @@ class EmployeeSalaryController extends Controller
         ], [
             'basic_salary.required' => 'Basic salary is required.',
             'basic_salary.numeric' => 'Basic salary must be a number.',
-            'variable_allowance.required' => 'Variable allowance is required.',
             'variable_allowance.numeric' => 'Variable allowance must be a number.',
-            'hra.required' => 'HRA is required.',
             'hra.numeric' => 'HRA must be a number.',
             'effective_from.required' => 'Effective from date is required.',
             'effective_from.date' => 'Enter a valid effective from date.',

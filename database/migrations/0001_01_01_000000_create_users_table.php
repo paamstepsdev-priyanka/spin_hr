@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('mobile')->unique();
+            $table->string('mobile')->nullable()->unique();
             $table->string('password');
             $table->string('role')->default('admin');
             $table->string('status')->default('active');

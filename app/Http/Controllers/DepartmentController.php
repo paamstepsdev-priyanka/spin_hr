@@ -21,11 +21,9 @@ class DepartmentController extends Controller
             return DataTables::of($departments)
                 ->addIndexColumn()
                 ->addColumn('edit', function ($row) {
-                    return '<div class="btn-group btn-group-sm" role="group">
-                                <a href="' . route('departments.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
-                                    Edit
-                                </a>
-                            </div>';
+                    return '<a href="' . route('departments.edit', $row->id) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>';
                 })
                 ->editColumn('status', function ($row) {
                     $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger';

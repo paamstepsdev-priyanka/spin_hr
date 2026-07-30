@@ -40,10 +40,7 @@
                         <select class="form-select form-select-sm" id="filter_employment_type">
                             <option value="">All Employee Types</option>
                             <option value="Permanent">Permanent</option>
-                            <option value="Contract">Contract</option>
-                            <option value="Probation">Probation</option>
-                            <option value="Intern">Intern</option>
-                            <option value="Part-time">Part-time</option>
+                            <option value="Consultant">Consultant</option>
                         </select>
                     </div>
 
@@ -91,23 +88,23 @@
 
                 <!-- Employees Table -->
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100" id="employees-table">
+                    <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100 text-nowrap" id="employees-table">
                         <thead class="table-light">
                             <tr>
-                                <th scope="col" class="fw-bold text-center" style="width: 10px;">#</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 20px;">Edit</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 20px;">Delete</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 20px;">Salary</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 20px;">Status</th>
-                                <th scope="col" class="fw-bold pe-2" style="width: 110px;">Employee Code</th>
-                                <th scope="col" class="fw-bold">Name</th>
-                                <th scope="col" class="fw-bold">Company</th>
-                                <th scope="col" class="fw-bold">Branch</th>
-                                <th scope="col" class="fw-bold">Department</th>
-                                <th scope="col" class="fw-bold">Designation</th>
-                                <th scope="col" class="fw-bold">Mobile</th>
-                                <th scope="col" class="fw-bold">Email</th>
-                               
+                                <th scope="col" class="fw-bold text-center" style="width: 30px;">#</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 40px;">Edit</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 40px;">Delete</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 70px;">Status</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 90px;">Salary</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 80px;">Code</th>
+                                <th scope="col" class="fw-bold text-start" style="width: 130px;">Name</th>
+                                <th scope="col" class="fw-bold text-start">Company</th>
+                                <th scope="col" class="fw-bold text-start">Branch</th>
+                                <th scope="col" class="fw-bold text-start">Department</th>
+                                <th scope="col" class="fw-bold text-start">Designation</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 90px;">Type</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 100px;">Mobile</th>
+                                <th scope="col" class="fw-bold text-start">Email</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -143,15 +140,16 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
                 { data: 'edit', name: 'edit', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'delete', name: 'delete', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'salary', name: 'salary', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'status', name: 'status', className: 'text-center' },
-                { data: 'employee_code', name: 'employee_code', className: 'fw-bold text-body' },   
+                { data: 'salary', name: 'salary', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'employee_code', name: 'employee_code', className: 'text-center fw-bold text-body' },   
                 { data: 'name', name: 'name', className: 'fw-semibold' },
                 { data: 'company_name', name: 'company.name' },
                 { data: 'branch_name', name: 'branch.name' },
                 { data: 'department_name', name: 'department.name' },
                 { data: 'designation', name: 'designation' },
-                { data: 'mobile', name: 'mobile' },
+                { data: 'employment_type', name: 'employment_type', className: 'text-center' },
+                { data: 'mobile', name: 'mobile', className: 'text-center' },
                 { data: 'email', name: 'email' },
             ],
             language: {

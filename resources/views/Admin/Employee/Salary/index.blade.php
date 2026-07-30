@@ -58,8 +58,8 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="fw-bold text-center" style="width: 10px;">#</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 100px;">Edit</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 100px;">Delete</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 20px;">Edit</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 20px;">Delete</th>
                                 <th scope="col" class="fw-bold text-center">Status</th>
                                 <th scope="col" class="fw-bold pe-2">Start Date</th>
                                 <th scope="col" class="fw-bold pe-2">End Date</th>

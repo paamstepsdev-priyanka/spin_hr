@@ -21,11 +21,9 @@ class BranchController extends Controller
             return DataTables::of($branches)
                 ->addIndexColumn()
                 ->addColumn('edit', function ($row) use ($company) {
-                    return '<div class="btn-group btn-group-sm" role="group">
-                                <a href="' . route('company.branches.edit', [$company->id, $row->id]) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
-                                    Edit
-                                </a>
-                            </div>';
+                    return '<a href="' . route('company.branches.edit', [$company->id, $row->id]) . '" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>';
                 })
                 ->editColumn('status', function ($row) {
                     $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger';

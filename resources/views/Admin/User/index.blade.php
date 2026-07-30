@@ -80,14 +80,14 @@
                                     <td class="text-center pe-2">
                                         <div class="btn-group btn-group-sm" role="group">
                                             <a href="{{ route('users.edit', $user->id) }}" class="btn btn-xs btn-outline-primary py-0 px-1" title="Edit">
-                                                Edit
+                                                <i class="bi bi-pencil"></i>
                                             </a>
                                             @if(Auth::id() !== $user->id)
                                                 <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this user?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1" title="Delete">
-                                                        Del
+                                                        <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
                                             @endif
