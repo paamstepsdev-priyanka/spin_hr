@@ -11,36 +11,21 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <!-- Header Banner Block -->
+        <!-- Single Unified Card -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body bg-body-tertiary rounded p-3 d-flex justify-content-between align-items-center">
+            <!-- Card Header: Title & Action Button -->
+            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
                 <h4 class="mb-0 fw-bold text-body">Monthly Attendance Management</h4>
                 <a href="{{ route('attendance.create') }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
                     <i class="bi bi-plus-lg me-1"></i>
                     Mark Monthly Attendance
                 </a>
             </div>
-        </div>
 
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <div id="alert-container"></div>
-
-        <!-- Filter Card -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-body">Filter Monthly Attendance</h5>
-                <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold" id="btn-reset-filters">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
-                </button>
-            </div>
+            <!-- Card Body: Filters + Attendance Data Table -->
             <div class="card-body p-3">
-                <form id="attendance-filter-form">
+                <!-- Filter Section -->
+                <form id="attendance-filter-form" class="bg-body-tertiary p-3 rounded mb-3 border border-light-subtle">
                     <div class="row g-3 align-items-end">
                         <!-- Company Dropdown -->
                         <div class="col-md-3">
@@ -87,15 +72,8 @@
                         </div>
                     </div>
                 </form>
-            </div>
-        </div>
 
-        <!-- Saved Monthly Attendance History Card -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-body">Saved Monthly Attendance History</h5>
-            </div>
-            <div class="card-body p-3">
+                <!-- Data List Section -->
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100 text-nowrap" id="attendance-months-table">
                         <thead class="table-light">

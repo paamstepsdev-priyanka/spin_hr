@@ -38,7 +38,7 @@
                             <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
                                 <option value="">Select Company</option>
                                 @foreach($companies as $company)
-                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                    <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -49,7 +49,7 @@
                             <select class="form-select form-select-sm select2" id="branch_id" name="branch_id" required>
                                 <option value="">Select Branch</option>
                                 @foreach($branches as $branch)
-                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                    <option value="{{ $branch->id }}" {{ (isset($selectedBranchId) && $selectedBranchId == $branch->id) ? 'selected' : '' }}>{{ $branch->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -118,7 +118,8 @@
                     success: function(branches) {
                         branchSelect.html('<option value="">Select Branch</option>');
                         $.each(branches, function(key, branch) {
-                            branchSelect.append('<option value="' + branch.id + '">' + branch.name + '</option>');
+                            let selected = (branch.id == "{{ $selectedBranchId ?? '' }}") ? 'selected' : '';
+                            branchSelect.append('<option value="' + branch.id + '" ' + selected + '>' + branch.name + '</option>');
                         });
                         branchSelect.trigger('change.select2');
                     },
@@ -134,6 +135,11 @@
                 branchSelect.trigger('change.select2');
             }
         });
+
+        // Auto-load employees if redirected from Attendance module
+        @if(!empty($selectedCompanyId) && !empty($selectedBranchId))
+            $('#btn-load-employees').click();
+        @endif
 
         // Load Employees for Payroll Generation
         $('#btn-load-employees').on('click', function() {

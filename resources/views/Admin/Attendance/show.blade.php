@@ -8,7 +8,7 @@
         <!-- Header Banner Block -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body bg-body-tertiary rounded p-3 d-flex justify-content-between align-items-center">
-                <h4 class="mb-0 fw-bold text-body">Monthly Attendance Summary View</h4>
+                <h4 class="mb-0 fw-bold text-body"> Attendance Summary </h4>
                 <div class="d-flex gap-2">
                     <a href="{{ route('attendance.edit', $attendanceMonth->id) }}" class="btn btn-primary btn-sm fw-semibold">
                         <i class="bi bi-pencil me-1"></i> Edit Attendance
@@ -23,7 +23,7 @@
         <!-- Master Info Card -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-body-tertiary border-0 py-3">
-                <h5 class="mb-0 fw-bold text-body">Attendance Batch Information</h5>
+                <h5 class="mb-0 fw-bold text-body">Attendance Information</h5>
             </div>
             <div class="card-body p-3">
                 <div class="row g-3">

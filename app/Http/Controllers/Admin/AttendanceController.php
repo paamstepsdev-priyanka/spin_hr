@@ -8,6 +8,7 @@ use App\Models\AttendanceMonthDetail;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\Payroll;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,9 +76,28 @@ class AttendanceController extends Controller
                     $deleteBtn = '<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 me-1 btn-delete" data-url="' . route('attendance.destroy', $row->id) . '" title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </button>';
-                    $payrollBtn = '<button type="button" class="btn btn-xs btn-outline-success py-0 px-1" title="Payroll (Coming Soon)" disabled>
-                                    <i class="bi bi-currency-rupee"></i>
-                                </button>';
+
+                    $payroll = Payroll::where('company_id', $row->company_id)
+                        ->where('branch_id', $row->branch_id)
+                        ->where('month', $row->month)
+                        ->where('year', $row->year)
+                        ->first();
+
+                    if ($payroll) {
+                        $payrollBtn = '<a href="' . route('payrolls.show', $payroll->id) . '" class="btn btn-xs btn-success py-0 px-1 text-white" title="View Generated Payroll">
+                                        <i class="bi bi-currency-rupee"></i>
+                                    </a>';
+                    } else {
+                        $payrollUrl = route('payrolls.create', [
+                            'company_id' => $row->company_id,
+                            'branch_id' => $row->branch_id,
+                            'month' => $row->month,
+                            'year' => $row->year,
+                        ]);
+                        $payrollBtn = '<a href="' . $payrollUrl . '" class="btn btn-xs btn-outline-warning py-0 px-1" title="Generate Payroll">
+                                        <i class="bi bi-currency-rupee"></i>
+                                    </a>';
+                    }
 
                     return '<div class="d-flex justify-content-center align-items-center">' . $viewBtn . $editBtn . $deleteBtn . $payrollBtn . '</div>';
                 })

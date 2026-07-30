@@ -116,7 +116,7 @@ class PayrollController extends Controller
     /**
      * Show form to generate monthly payroll.
      */
-    public function create()
+    public function create(Request $request)
     {
         $companies = Company::where('status', 'active')->orderBy('name', 'asc')->get();
         $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
@@ -126,10 +126,12 @@ class PayrollController extends Controller
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
 
-        $currentMonth = (int) date('n');
-        $currentYear = (int) date('Y');
+        $currentMonth = (int) $request->query('month', date('n'));
+        $currentYear = (int) $request->query('year', date('Y'));
+        $selectedCompanyId = $request->query('company_id');
+        $selectedBranchId = $request->query('branch_id');
 
-        return view('Admin.Payroll.create', compact('companies', 'branches', 'months', 'currentMonth', 'currentYear'));
+        return view('Admin.Payroll.create', compact('companies', 'branches', 'months', 'currentMonth', 'currentYear', 'selectedCompanyId', 'selectedBranchId'));
     }
 
     /**
@@ -194,10 +196,20 @@ class PayrollController extends Controller
             ], 422);
         }
 
-        // Fetch active employees of selected company & branch with their active salary
+        $firstDate = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
+        $lastDate = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
+
+        // Fetch active employees of selected company & branch with their valid active salary for the payroll month
         $employees = Employee::with(['department', 'branch'])
-            ->with(['salaries' => function ($q) {
-                $q->where('status', 'active');
+            ->with(['salaries' => function ($q) use ($firstDate, $lastDate) {
+                $q->where('status', 'active')
+                  ->where('effective_from', '<=', $lastDate)
+                  ->where(function ($sub) use ($firstDate) {
+                      $sub->whereNull('effective_to')
+                          ->orWhere('effective_to', '>=', $firstDate);
+                  })
+                  ->orderBy('effective_from', 'desc')
+                  ->orderBy('id', 'desc');
             }])
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId)
@@ -291,7 +303,7 @@ class PayrollController extends Controller
             'status' => true,
             'html' => $html,
             'has_errors' => $hasErrors,
-            'message' => $hasErrors ? 'Some employee records have missing salary or attendance configuration.' : 'Employees loaded for payroll generation.',
+            'message' => $hasErrors ? 'Cannot generate payroll because one or more employees have missing or expired salary configuration.' : 'Employees loaded for payroll generation.',
         ]);
     }
 
@@ -349,9 +361,19 @@ class PayrollController extends Controller
             ->get()
             ->keyBy('employee_id');
 
-        // Fetch Active Employees
-        $employees = Employee::with(['salaries' => function ($q) {
-            $q->where('status', 'active');
+        $firstDate = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
+        $lastDate = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
+
+        // Fetch Active Employees with valid active salary for the payroll month
+        $employees = Employee::with(['salaries' => function ($q) use ($firstDate, $lastDate) {
+            $q->where('status', 'active')
+              ->where('effective_from', '<=', $lastDate)
+              ->where(function ($sub) use ($firstDate) {
+                  $sub->whereNull('effective_to')
+                      ->orWhere('effective_to', '>=', $firstDate);
+              })
+              ->orderBy('effective_from', 'desc')
+              ->orderBy('id', 'desc');
         }])
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId)

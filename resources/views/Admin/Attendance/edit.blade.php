@@ -20,7 +20,7 @@
         <!-- Master Info Card -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-body-tertiary border-0 py-3">
-                <h5 class="mb-0 fw-bold text-body">Attendance Batch Information</h5>
+                <h5 class="mb-0 fw-bold text-body">Attendance Information</h5>
             </div>
             <div class="card-body p-3">
                 <div class="row g-3">

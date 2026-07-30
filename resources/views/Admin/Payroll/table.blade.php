@@ -18,7 +18,7 @@
         <div class="card-body p-3">
             @if($hasErrors)
                 <div class="alert alert-danger py-2 mb-3 small fw-semibold" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Cannot generate payroll: One or more employees have missing salary or attendance data.
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Cannot generate payroll because one or more employees have missing or expired salary configuration.
                 </div>
             @endif
 
@@ -46,7 +46,7 @@
                     </thead>
                     <tbody>
                         @foreach($records as $index => $row)
-                            <tr>
+                            <tr class="{{ !$row['has_salary'] || !$row['has_attendance'] ? 'table-danger' : '' }}">
                                 <td class="text-center text-muted">{{ $index + 1 }}</td>
                                 <td class="text-start fw-semibold">{{ $row['employee_code'] }}</td>
                                 <td class="text-start fw-bold text-body">{{ $row['name'] }}</td>
@@ -72,9 +72,7 @@
                                             Salary Missing <i class="bi bi-box-arrow-up-right ms-1"></i>
                                         </a>
                                     @elseif(!$row['has_attendance'])
-                                        <a href="{{ route('attendance.create') }}" target="_blank" class="badge bg-danger text-white text-decoration-none" title="Click to mark monthly attendance">
-                                            Attendance Missing <i class="bi bi-box-arrow-up-right ms-1"></i>
-                                        </a>
+                                        <span class="badge bg-danger">Attendance Missing</span>
                                     @else
                                         <span class="badge bg-success">Ready</span>
                                     @endif
