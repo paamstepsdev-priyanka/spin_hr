@@ -11,20 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('attendance_months', function (Blueprint $table) {
+        Schema::create('payrolls', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
-            $table->unsignedTinyInteger('month')->nullable();
-            $table->unsignedSmallInteger('year')->nullable();
-            $table->string('status')->default('Completed');
+            $table->unsignedTinyInteger('month');
+            $table->unsignedSmallInteger('year');
+            $table->decimal('total_gross_salary', 12, 2)->default(0);
+            $table->decimal('total_deduction', 12, 2)->default(0);
+            $table->decimal('total_net_salary', 12, 2)->default(0);
+            $table->string('status')->default('Generated'); // Draft, Generated, Locked, Paid
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->unsignedBigInteger('deleted_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['company_id', 'branch_id', 'month', 'year'], 'company_branch_month_year_unique');
+            $table->unique(['company_id', 'branch_id', 'month', 'year'], 'payroll_company_branch_month_year_unique');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('updated_by')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('deleted_by')->references('id')->on('users')->onDelete('cascade');
@@ -36,6 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('attendance_months');
+        Schema::dropIfExists('payrolls');
     }
 };

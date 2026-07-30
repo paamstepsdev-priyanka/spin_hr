@@ -10,6 +10,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\EmployeeSalaryController;
+use App\Http\Controllers\PayrollController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login
@@ -63,4 +64,14 @@ Route::middleware('auth')->group(function () {
     Route::post('attendance-report/report', [AttendanceReportController::class, 'report'])->name('attendance-report.report');
     Route::get('attendance-report/export-pdf', [AttendanceReportController::class, 'exportPdf'])->name('attendance-report.export-pdf');
     Route::get('attendance-report/export-excel', [AttendanceReportController::class, 'exportExcel'])->name('attendance-report.export-excel');
+
+    // Payroll
+    Route::get('payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
+    Route::get('payrolls/create', [PayrollController::class, 'create'])->name('payrolls.create');
+    Route::post('payrolls/load-employees', [PayrollController::class, 'loadEmployees'])->name('payrolls.loadEmployees');
+    Route::post('payrolls', [PayrollController::class, 'store'])->name('payrolls.store');
+    Route::get('payrolls/{payroll}', [PayrollController::class, 'show'])->name('payrolls.show');
+    Route::delete('payrolls/{payroll}', [PayrollController::class, 'destroy'])->name('payrolls.destroy');
+    Route::get('payrolls/salary-slip/{detail}', [PayrollController::class, 'salarySlip'])->name('payrolls.salary-slip');
+    Route::get('payrolls/salary-slip/{detail}/pdf', [PayrollController::class, 'salarySlipPdf'])->name('payrolls.salary-slip.pdf');
 });

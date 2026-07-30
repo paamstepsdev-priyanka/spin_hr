@@ -54,6 +54,15 @@
             </a>
         </li>
 
+        <li class="menu-title text-white" style="font-weight: bold;font-size: 14px;">Payroll</li>
+
+        <li>
+            <a href="{{ route('payrolls.index') }}" class="{{ request()->routeIs('payrolls.*') ? 'active' : '' }}">
+                <i class="bi bi-wallet2"></i>
+                <span>Payroll</span>
+            </a>
+        </li>
+
 
 
         {{-- <li>

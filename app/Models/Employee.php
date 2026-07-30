@@ -108,5 +108,13 @@ class Employee extends Model
     {
         return $this->hasMany(AttendanceMonthDetail::class);
     }
+
+    /**
+     * Get the payroll details for the employee.
+     */
+    public function payrollDetails(): HasMany
+    {
+        return $this->hasMany(PayrollDetail::class);
+    }
 }
 
