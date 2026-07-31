@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Models\UserCompany;
 use App\Services\CompanyScope;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -61,6 +62,14 @@ class EmployeeController extends Controller
                         Salary(' . $row->salaries_count . ')
                     </a>';
                 })
+                ->editColumn('name', function ($row) {
+                    return '<a href="' . route('employees.show', $row->id) . '" class="fw-semibold text-primary text-decoration-none" title="View Employee Profile">' . e($row->name) . '</a>';
+                })
+                ->addColumn('view', function ($row) {
+                    return '<a href="' . route('employees.show', $row->id) . '" class="btn btn-xs btn-info text-white py-0 px-1" title="View Profile">
+                                <i class="bi bi-eye"></i>
+                            </a>';
+                })
                 ->addColumn('edit', function ($row) {
                     return '<a href="' . route('employees.edit', $row->id) . '" class="btn btn-xs btn-primary py-0 px-1" title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -78,7 +87,7 @@ class EmployeeController extends Controller
                 ->editColumn('email', function ($row) {
                     return '<a href="mailto:' . e($row->email) . '" class="text-decoration-none text-body">' . e($row->email) . '</a>';
                 })
-                ->rawColumns(['company_name', 'branch_name', 'department_name', 'salary', 'edit', 'delete', 'status', 'email'])
+                ->rawColumns(['company_name', 'branch_name', 'department_name', 'salary', 'name', 'view', 'edit', 'delete', 'status', 'email'])
                 ->make(true);
         }
 
@@ -498,5 +507,353 @@ class EmployeeController extends Controller
 
             return redirect()->back()->with('error', 'Failed to delete employee.');
         }
+    }
+
+    /**
+     * Display the 360 degree profile of the specified employee.
+     */
+    public function show(Employee $employee): View
+    {
+        // Security: CompanyScope validation
+        if (CompanyScope::id() !== null && (int)$employee->company_id !== (int)CompanyScope::id()) {
+            abort(403, 'Unauthorized access to employee record.');
+        }
+
+        // Eager load all relations to prevent N+1 queries
+        $employee->load([
+            'company',
+            'branch',
+            'department',
+            'user',
+            'salaries' => function ($q) {
+                $q->orderBy('effective_from', 'desc')->orderBy('id', 'desc');
+            },
+            'monthlyAttendanceDetails' => function ($q) {
+                $q->whereHas('attendanceMonth', function ($am) {
+                    $am->forCurrentCompany();
+                })->with(['attendanceMonth.company', 'attendanceMonth.branch', 'attendanceMonth.creator'])
+                  ->orderBy('id', 'desc');
+            },
+            'payrollDetails' => function ($q) {
+                $q->whereHas('payroll', function ($pr) {
+                    $pr->forCurrentCompany();
+                })->with(['payroll.company', 'payroll.branch', 'payroll.creator'])
+                  ->orderBy('id', 'desc');
+            },
+        ]);
+
+        // 1. Calculate Reporting Manager
+        $reportingManager = null;
+        if (!empty($employee->reporting_to)) {
+            $reportingManager = Employee::forCurrentCompany()
+                ->where(function ($q) use ($employee) {
+                    $q->where('employee_code', $employee->reporting_to)
+                      ->orWhere('name', $employee->reporting_to)
+                      ->orWhere('id', $employee->reporting_to);
+                })
+                ->first();
+        }
+
+        // 2. Calculate Employee Experience (Years, Months, Days)
+        $experienceStr = 'N/A';
+        $experienceParts = ['years' => 0, 'months' => 0, 'days' => 0];
+        if ($employee->joining_date) {
+            $joiningDate = Carbon::parse($employee->joining_date);
+            $now = Carbon::now();
+            $diff = $joiningDate->diff($now);
+
+            $experienceParts = [
+                'years' => $diff->y,
+                'months' => $diff->m,
+                'days' => $diff->d,
+            ];
+
+            $strArr = [];
+            if ($diff->y > 0) {
+                $strArr[] = $diff->y . ' ' . ($diff->y === 1 ? 'Year' : 'Years');
+            }
+            if ($diff->m > 0) {
+                $strArr[] = $diff->m . ' ' . ($diff->m === 1 ? 'Month' : 'Months');
+            }
+            if ($diff->d > 0 && $diff->y === 0) {
+                $strArr[] = $diff->d . ' ' . ($diff->d === 1 ? 'Day' : 'Days');
+            }
+            $experienceStr = !empty($strArr) ? implode(' ', $strArr) : '0 Days';
+        }
+
+        // 3. Calculate Current Active Salary Configuration & Status Badges
+        $today = Carbon::today()->toDateString();
+        $currentSalary = $employee->salaries->first(function ($s) use ($today) {
+            return strtolower($s->status) === 'active'
+                && $s->effective_from <= $today
+                && (is_null($s->effective_to) || $s->effective_to >= $today);
+        });
+
+        if (!$currentSalary) {
+            $currentSalary = $employee->salaries->firstWhere('status', 'active') ?? $employee->salaries->first();
+        }
+
+        $salaryStatus = 'Missing';
+        $salaryBadgeClass = 'bg-danger';
+        if ($currentSalary) {
+            if (strtolower($currentSalary->status) === 'active') {
+                if ($currentSalary->effective_to && $currentSalary->effective_to < $today) {
+                    $salaryStatus = 'Expired';
+                    $salaryBadgeClass = 'bg-secondary';
+                } elseif ($currentSalary->effective_from > $today) {
+                    $salaryStatus = 'Future';
+                    $salaryBadgeClass = 'bg-info text-dark';
+                } else {
+                    $salaryStatus = 'Active';
+                    $salaryBadgeClass = 'bg-success';
+                }
+            } elseif ($currentSalary->effective_to && $currentSalary->effective_to < $today) {
+                $salaryStatus = 'Expired';
+                $salaryBadgeClass = 'bg-secondary';
+            } elseif ($currentSalary->effective_from > $today) {
+                $salaryStatus = 'Future';
+                $salaryBadgeClass = 'bg-info text-dark';
+            } else {
+                $salaryStatus = ucfirst($currentSalary->status);
+                $salaryBadgeClass = 'bg-warning text-dark';
+            }
+        }
+
+        // 4. Calculate Current Month Attendance Summary & Attendance Status
+        $currentMonth = (int) date('n');
+        $currentYear = (int) date('Y');
+
+        $currentMonthAttDetail = $employee->monthlyAttendanceDetails->first(function ($det) use ($currentMonth, $currentYear) {
+            return $det->attendanceMonth
+                && (int)$det->attendanceMonth->month === $currentMonth
+                && (int)$det->attendanceMonth->year === $currentYear;
+        });
+
+        if (!$currentMonthAttDetail) {
+            // Fallback to latest available attendance detail
+            $currentMonthAttDetail = $employee->monthlyAttendanceDetails->sortByDesc(function ($det) {
+                return $det->attendanceMonth ? ($det->attendanceMonth->year * 100 + $det->attendanceMonth->month) : 0;
+            })->first();
+        }
+
+        $attendanceStatus = $currentMonthAttDetail ? 'Completed' : 'Missing';
+        $attendanceBadgeClass = $currentMonthAttDetail ? 'bg-success' : 'bg-danger';
+
+        // 5. Calculate Latest Payroll Summary & Payroll Status
+        $latestPayrollDetail = $employee->payrollDetails->sortByDesc(function ($p) {
+            return $p->payroll ? ($p->payroll->year * 100 + $p->payroll->month) : 0;
+        })->first();
+
+        $currentMonthPayroll = $employee->payrollDetails->first(function ($p) use ($currentMonth, $currentYear) {
+            return $p->payroll
+                && (int)$p->payroll->month === $currentMonth
+                && (int)$p->payroll->year === $currentYear;
+        });
+
+        $payrollStatus = 'Pending';
+        $payrollBadgeClass = 'bg-warning text-dark';
+
+        $activePayrollDetail = $currentMonthPayroll ?? $latestPayrollDetail;
+        if ($activePayrollDetail && $activePayrollDetail->payroll) {
+            $statusName = $activePayrollDetail->payroll->status ?? 'Generated';
+            $payrollStatus = ucfirst($statusName);
+            $payrollBadgeClass = match (strtolower($statusName)) {
+                'generated' => 'bg-success',
+                'locked' => 'bg-warning text-dark',
+                'paid' => 'bg-info text-dark',
+                'draft' => 'bg-secondary',
+                default => 'bg-primary',
+            };
+        }
+
+        // 6. Documents List Preparation
+        $documents = [];
+        $docKeys = [
+            'photo' => 'Employee Photo',
+            'pan_card' => 'PAN Card',
+            'aadhar_card' => 'Aadhaar Card',
+            'cancelled_cheque' => 'Cancelled Cheque',
+            'resume' => 'Resume',
+        ];
+
+        foreach ($docKeys as $field => $label) {
+            if ($employee->$field && Storage::disk('public')->exists($employee->$field)) {
+                $filePath = $employee->$field;
+                $fullPath = Storage::disk('public')->path($filePath);
+                $sizeBytes = file_exists($fullPath) ? filesize($fullPath) : 0;
+                $formattedSize = $sizeBytes > 0 ? round($sizeBytes / 1024, 1) . ' KB' : 'N/A';
+
+                $documents[] = [
+                    'key' => $field,
+                    'label' => $label,
+                    'file_name' => basename($filePath),
+                    'uploaded_date' => date('d M Y', filemtime($fullPath) ?: time()),
+                    'file_size' => $formattedSize,
+                    'url' => asset('storage/' . $filePath),
+                ];
+            }
+        }
+
+        // 7. Dynamic Timeline Construction (Sorted Latest First)
+        $timelineEvents = [];
+
+        // Event: Created
+        if ($employee->created_at) {
+            $timelineEvents[] = [
+                'date' => $employee->created_at->format('d M Y'),
+                'time' => $employee->created_at->format('h:i A'),
+                'timestamp' => $employee->created_at->timestamp,
+                'title' => 'Employee Profile Created',
+                'description' => 'Employee account was added to the HRMS portal.',
+                'performed_by' => 'System / HR Admin',
+                'badge' => 'bg-primary'
+            ];
+        }
+
+        // Event: Joined
+        if ($employee->joining_date) {
+            $joiningTime = Carbon::parse($employee->joining_date);
+            $timelineEvents[] = [
+                'date' => $joiningTime->format('d M Y'),
+                'time' => '09:00 AM',
+                'timestamp' => $joiningTime->timestamp,
+                'title' => 'Joined Company',
+                'description' => 'Officially joined ' . e($employee->company->name ?? 'Company') . ' as ' . e($employee->designation ?? 'Employee') . '.',
+                'performed_by' => 'HR Department',
+                'badge' => 'bg-success'
+            ];
+        }
+
+        // Event: Salary History Timeline
+        foreach ($employee->salaries as $sal) {
+            $eventTime = $sal->created_at ?? Carbon::parse($sal->effective_from);
+            $timelineEvents[] = [
+                'date' => $eventTime->format('d M Y'),
+                'time' => $eventTime->format('h:i A'),
+                'timestamp' => $eventTime->timestamp,
+                'title' => 'Salary Configured / Updated',
+                'description' => 'Salary effective from ' . date('d M Y', strtotime($sal->effective_from)) . '. Gross: ₹ ' . number_format($sal->gross_salary, 2) . ', Net: ₹ ' . number_format($sal->net_salary, 2),
+                'performed_by' => 'HR / Accounts',
+                'badge' => 'bg-info'
+            ];
+        }
+
+        // Event: Attendance History Timeline
+        foreach ($employee->monthlyAttendanceDetails as $attDet) {
+            if ($attDet->attendanceMonth) {
+                $monthName = Carbon::createFromDate($attDet->attendanceMonth->year, $attDet->attendanceMonth->month, 1)->format('F Y');
+                $eventTime = $attDet->created_at ?? Carbon::createFromDate($attDet->attendanceMonth->year, $attDet->attendanceMonth->month, 1);
+                $timelineEvents[] = [
+                    'date' => $eventTime->format('d M Y'),
+                    'time' => $eventTime->format('h:i A'),
+                    'timestamp' => $eventTime->timestamp,
+                    'title' => 'Attendance Generated (' . $monthName . ')',
+                    'description' => 'Attendance recorded: ' . $attDet->net_present . ' Present Days, ' . $attDet->leave_taken . ' Leaves, ' . $attDet->payable_days . ' Payable Days.',
+                    'performed_by' => $attDet->attendanceMonth->creator ? $attDet->attendanceMonth->creator->name : 'System Admin',
+                    'badge' => 'bg-secondary'
+                ];
+            }
+        }
+
+        // Event: Payroll History Timeline
+        foreach ($employee->payrollDetails as $payDet) {
+            if ($payDet->payroll) {
+                $monthName = Carbon::createFromDate($payDet->payroll->year, $payDet->payroll->month, 1)->format('F Y');
+                $eventTime = $payDet->created_at ?? Carbon::createFromDate($payDet->payroll->year, $payDet->payroll->month, 1);
+                $timelineEvents[] = [
+                    'date' => $eventTime->format('d M Y'),
+                    'time' => $eventTime->format('h:i A'),
+                    'timestamp' => $eventTime->timestamp,
+                    'title' => 'Payroll Processed (' . $monthName . ')',
+                    'description' => 'Monthly payslip generated. Earned Salary: ₹ ' . number_format($payDet->earned_salary, 2) . ', Net Salary: ₹ ' . number_format($payDet->net_salary, 2),
+                    'performed_by' => $payDet->payroll->creator ? $payDet->payroll->creator->name : 'System Admin',
+                    'badge' => 'bg-warning text-dark'
+                ];
+            }
+        }
+
+        // Sort timeline latest first
+        usort($timelineEvents, function ($a, $b) {
+            return $b['timestamp'] <=> $a['timestamp'];
+        });
+
+        return view('Admin.Employee.show', compact(
+            'employee',
+            'reportingManager',
+            'experienceStr',
+            'experienceParts',
+            'currentSalary',
+            'salaryStatus',
+            'salaryBadgeClass',
+            'currentMonthAttDetail',
+            'attendanceStatus',
+            'attendanceBadgeClass',
+            'latestPayrollDetail',
+            'currentMonthPayroll',
+            'payrollStatus',
+            'payrollBadgeClass',
+            'documents',
+            'timelineEvents'
+        ));
+    }
+
+    /**
+     * Export / Print printable A4 Employee Profile PDF.
+     */
+    public function exportPdf(Employee $employee): View
+    {
+        // Security: CompanyScope validation
+        if (CompanyScope::id() !== null && (int)$employee->company_id !== (int)CompanyScope::id()) {
+            abort(403, 'Unauthorized access to employee record.');
+        }
+
+        $employee->load([
+            'company',
+            'branch',
+            'department',
+            'user',
+            'salaries' => function ($q) {
+                $q->orderBy('effective_from', 'desc')->orderBy('id', 'desc');
+            },
+            'monthlyAttendanceDetails' => function ($q) {
+                $q->whereHas('attendanceMonth', function ($am) {
+                    $am->forCurrentCompany();
+                })->with(['attendanceMonth'])
+                  ->orderBy('id', 'desc');
+            },
+            'payrollDetails' => function ($q) {
+                $q->whereHas('payroll', function ($pr) {
+                    $pr->forCurrentCompany();
+                })->with(['payroll'])
+                  ->orderBy('id', 'desc');
+            },
+        ]);
+
+        $today = Carbon::today()->toDateString();
+        $currentSalary = $employee->salaries->first(function ($s) use ($today) {
+            return strtolower($s->status) === 'active'
+                && $s->effective_from <= $today
+                && (is_null($s->effective_to) || $s->effective_to >= $today);
+        }) ?? ($employee->salaries->firstWhere('status', 'active') ?? $employee->salaries->first());
+
+        $latestAttendance = $employee->monthlyAttendanceDetails->first();
+        $latestPayroll = $employee->payrollDetails->first();
+
+        $experienceStr = 'N/A';
+        if ($employee->joining_date) {
+            $diff = Carbon::parse($employee->joining_date)->diff(Carbon::now());
+            $strArr = [];
+            if ($diff->y > 0) $strArr[] = $diff->y . ' ' . ($diff->y === 1 ? 'Year' : 'Years');
+            if ($diff->m > 0) $strArr[] = $diff->m . ' ' . ($diff->m === 1 ? 'Month' : 'Months');
+            $experienceStr = !empty($strArr) ? implode(' ', $strArr) : '0 Days';
+        }
+
+        return view('Admin.Employee.pdf', compact(
+            'employee',
+            'currentSalary',
+            'latestAttendance',
+            'latestPayroll',
+            'experienceStr'
+        ));
     }
 }

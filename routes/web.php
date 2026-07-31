@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
 
     // Employee 
     Route::get('companies/{company}/get-branches', [EmployeeController::class, 'getBranches'])->name('companies.get-branches');
+    Route::get('employees/{employee}/pdf', [EmployeeController::class, 'exportPdf'])->name('employees.pdf');
     Route::resource('employees', EmployeeController::class);
     Route::resource('employees.salaries', EmployeeSalaryController::class);
 

@@ -86,6 +86,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="fw-bold text-center" style="width: 30px;">#</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 40px;">View</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 40px;">Edit</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 40px;">Delete</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 70px;">Status</th>
@@ -132,6 +133,7 @@
             },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
+                { data: 'view', name: 'view', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'edit', name: 'edit', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'delete', name: 'delete', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'status', name: 'status', className: 'text-center' },
