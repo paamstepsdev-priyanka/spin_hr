@@ -128,4 +128,3 @@ class Employee extends Model
         return $this->hasMany(PayrollDetail::class);
     }
 }
-

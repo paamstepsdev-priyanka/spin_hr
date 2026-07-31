@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\AttendanceMonth;
 use App\Models\AttendanceMonthDetail;
 use App\Models\Branch;
@@ -108,9 +109,18 @@ class PayrollController extends Controller
         $companies = CompanyScope::companies();
         $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
         $months = [
-            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
-            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
-            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+            1 => 'January',
+            2 => 'February',
+            3 => 'March',
+            4 => 'April',
+            5 => 'May',
+            6 => 'June',
+            7 => 'July',
+            8 => 'August',
+            9 => 'September',
+            10 => 'October',
+            11 => 'November',
+            12 => 'December'
         ];
         $statuses = ['Draft', 'Generated', 'Locked', 'Paid'];
 
@@ -125,9 +135,18 @@ class PayrollController extends Controller
         $companies = CompanyScope::companies();
         $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
         $months = [
-            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
-            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
-            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+            1 => 'January',
+            2 => 'February',
+            3 => 'March',
+            4 => 'April',
+            5 => 'May',
+            6 => 'June',
+            7 => 'July',
+            8 => 'August',
+            9 => 'September',
+            10 => 'October',
+            11 => 'November',
+            12 => 'December'
         ];
 
         $currentMonth = (int) $request->query('month', date('n'));
@@ -210,13 +229,13 @@ class PayrollController extends Controller
         $employees = Employee::with(['department', 'branch'])
             ->with(['salaries' => function ($q) use ($firstDate, $lastDate) {
                 $q->where('status', 'active')
-                  ->where('effective_from', '<=', $lastDate)
-                  ->where(function ($sub) use ($firstDate) {
-                      $sub->whereNull('effective_to')
-                          ->orWhere('effective_to', '>=', $firstDate);
-                  })
-                  ->orderBy('effective_from', 'desc')
-                  ->orderBy('id', 'desc');
+                    ->where('effective_from', '<=', $lastDate)
+                    ->where(function ($sub) use ($firstDate) {
+                        $sub->whereNull('effective_to')
+                            ->orWhere('effective_to', '>=', $firstDate);
+                    })
+                    ->orderBy('effective_from', 'desc')
+                    ->orderBy('id', 'desc');
             }])
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId)
@@ -377,13 +396,13 @@ class PayrollController extends Controller
         // Fetch Active Employees with valid active salary for the payroll month
         $employees = Employee::with(['salaries' => function ($q) use ($firstDate, $lastDate) {
             $q->where('status', 'active')
-              ->where('effective_from', '<=', $lastDate)
-              ->where(function ($sub) use ($firstDate) {
-                  $sub->whereNull('effective_to')
-                      ->orWhere('effective_to', '>=', $firstDate);
-              })
-              ->orderBy('effective_from', 'desc')
-              ->orderBy('id', 'desc');
+                ->where('effective_from', '<=', $lastDate)
+                ->where(function ($sub) use ($firstDate) {
+                    $sub->whereNull('effective_to')
+                        ->orWhere('effective_to', '>=', $firstDate);
+                })
+                ->orderBy('effective_from', 'desc')
+                ->orderBy('id', 'desc');
         }])
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId)

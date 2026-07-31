@@ -17,36 +17,36 @@ return new class extends Migration
             $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
 
             // Earnings Breakdown (Snapshot)
-            $table->decimal('basic_salary', 10, 2)->default(0);
-            $table->decimal('hra', 10, 2)->default(0);
-            $table->decimal('conveyance_allowance', 10, 2)->default(0);
-            $table->decimal('medical_allowance', 10, 2)->default(0);
-            $table->decimal('special_allowance', 10, 2)->default(0);
-            $table->decimal('other_allowance', 10, 2)->default(0);
-            $table->decimal('variable_allowance', 10, 2)->default(0);
-            $table->decimal('gross_salary', 10, 2)->default(0);
+            $table->decimal('basic_salary')->nullable();
+            $table->decimal('hra')->nullable();
+            $table->decimal('conveyance_allowance')->nullable();
+            $table->decimal('medical_allowance')->nullable();
+            $table->decimal('special_allowance')->nullable();
+            $table->decimal('other_allowance')->nullable();
+            $table->decimal('variable_allowance')->nullable();
+            $table->decimal('gross_salary')->nullable();
 
             // Attendance Figures (Snapshot)
-            $table->decimal('total_days', 5, 2)->default(0);
-            $table->decimal('leave_taken', 5, 2)->default(0);
-            $table->decimal('net_present', 5, 2)->default(0);
-            $table->decimal('leave_not_deducted', 5, 2)->default(0);
-            $table->decimal('payable_days', 5, 2)->default(0);
+            $table->decimal('total_days')->nullable();
+            $table->decimal('leave_taken')->nullable();
+            $table->decimal('net_present')->nullable();
+            $table->decimal('leave_not_deducted')->nullable();
+            $table->decimal('payable_days')->nullable();
 
             // Per Day & Earned Calculation
-            $table->decimal('per_day_salary', 10, 2)->default(0);
-            $table->decimal('earned_salary', 10, 2)->default(0);
+            $table->decimal('per_day_salary')->nullable();
+            $table->decimal('earned_salary')->nullable();
 
             // Deductions Breakdown (Snapshot)
-            $table->decimal('employee_pf', 10, 2)->default(0);
-            $table->decimal('esi', 10, 2)->default(0);
-            $table->decimal('professional_tax', 10, 2)->default(0);
-            $table->decimal('tds', 10, 2)->default(0);
-            $table->decimal('other_deduction', 10, 2)->default(0);
-            $table->decimal('total_deduction', 10, 2)->default(0);
+            $table->decimal('employee_pf')->nullable();
+            $table->decimal('esi')->nullable();
+            $table->decimal('professional_tax')->nullable();
+            $table->decimal('tds')->nullable();
+            $table->decimal('other_deduction')->nullable();
+            $table->decimal('total_deduction')->nullable();
 
             // Final Net Salary (Snapshot)
-            $table->decimal('net_salary', 10, 2)->default(0);
+            $table->decimal('net_salary')->nullable();
 
             $table->string('status')->default('Generated');
             $table->unsignedBigInteger('created_by')->nullable();

@@ -213,11 +213,14 @@ class AttendanceController extends Controller
         $records = [];
         foreach ($employees as $emp) {
             $detail = $existingDetails->get($emp->id);
+            $hasDetail = $detail !== null;
             
-            $leaveTaken = $detail ? (float)$detail->leave_taken : 0;
-            $netPresent = $detail ? (float)$detail->net_present : max(0, $totalDays - $leaveTaken);
-            $leaveNotDeducted = $detail ? (float)$detail->leave_not_deducted : 0;
-            $payableDays = $detail ? (float)$detail->payable_days : ($netPresent + $leaveNotDeducted);
+            $leaveTaken = ($hasDetail && $detail->leave_taken !== null) ? (float)$detail->leave_taken : null;
+            $calcLeaveTaken = $leaveTaken ?? 0;
+            $netPresent = $hasDetail ? (float)$detail->net_present : max(0, $totalDays - $calcLeaveTaken);
+            $leaveNotDeducted = ($hasDetail && $detail->leave_not_deducted !== null) ? (float)$detail->leave_not_deducted : null;
+            $calcLeaveNotDeducted = $leaveNotDeducted ?? 0;
+            $payableDays = $hasDetail ? (float)$detail->payable_days : ($netPresent + $calcLeaveNotDeducted);
 
             $records[] = [
                 'employee_id' => $emp->id,
@@ -225,9 +228,9 @@ class AttendanceController extends Controller
                 'salary_exists' => (bool) $emp->salary_exists,
                 'branch_name' => $emp->branch ? $emp->branch->name : 'N/A',
                 'total_days' => $totalDays,
-                'leave_taken' => ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken,
+                'leave_taken' => $leaveTaken !== null ? (($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken) : null,
                 'net_present' => ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent,
-                'leave_not_deducted' => ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted,
+                'leave_not_deducted' => $leaveNotDeducted !== null ? (($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted) : null,
                 'payable_days' => ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays,
             ];
         }
@@ -287,37 +290,43 @@ class AttendanceController extends Controller
 
         // Server-Side Validations
         foreach ($request->details as $index => $empData) {
-            $leaveTaken = (float)($empData['leave_taken'] ?? 0);
-            $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
+            $rawLeaveTaken = $empData['leave_taken'] ?? null;
+            $rawLeaveNotDeducted = $empData['leave_not_deducted'] ?? null;
+
+            $leaveTaken = ($rawLeaveTaken !== null && trim($rawLeaveTaken) !== '') ? (float)$rawLeaveTaken : null;
+            $leaveNotDeducted = ($rawLeaveNotDeducted !== null && trim($rawLeaveNotDeducted) !== '') ? (float)$rawLeaveNotDeducted : null;
+
+            $calcLeaveTaken = $leaveTaken ?? 0;
+            $calcLeaveNotDeducted = $leaveNotDeducted ?? 0;
 
             $employee = Employee::find($empData['employee_id']);
             $empName = $employee ? $employee->name : 'Employee #' . ($index + 1);
 
-            if ($leaveTaken < 0) {
+            if ($leaveTaken !== null && $leaveTaken < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveTaken > $totalDays) {
+            if ($leaveTaken !== null && $leaveTaken > $totalDays) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} ({$leaveTaken} days) cannot be greater than No. of Days in Month ({$totalDays}).",
                 ], 422);
             }
 
-            if ($leaveNotDeducted < 0) {
+            if ($leaveNotDeducted !== null && $leaveNotDeducted < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Not Deducted for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveNotDeducted > $leaveTaken) {
+            if ($leaveNotDeducted !== null && $leaveNotDeducted > $calcLeaveTaken) {
                 return response()->json([
                     'status' => false,
-                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$leaveTaken} days).",
+                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$calcLeaveTaken} days).",
                 ], 422);
             }
         }
@@ -348,14 +357,20 @@ class AttendanceController extends Controller
 
             foreach ($request->details as $empData) {
                 $employeeId = $empData['employee_id'];
-                $leaveTaken = (float)($empData['leave_taken'] ?? 0);
-                $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
+                $rawLeaveTaken = $empData['leave_taken'] ?? null;
+                $rawLeaveNotDeducted = $empData['leave_not_deducted'] ?? null;
+
+                $leaveTaken = ($rawLeaveTaken !== null && trim($rawLeaveTaken) !== '') ? (float)$rawLeaveTaken : null;
+                $leaveNotDeducted = ($rawLeaveNotDeducted !== null && trim($rawLeaveNotDeducted) !== '') ? (float)$rawLeaveNotDeducted : null;
+
+                $calcLeaveTaken = $leaveTaken ?? 0;
+                $calcLeaveNotDeducted = $leaveNotDeducted ?? 0;
 
                 // Auto formulas:
                 // Net Present = No. of Days in Month - Leave Taken
-                $netPresent = max(0, $totalDays - $leaveTaken);
+                $netPresent = max(0, $totalDays - $calcLeaveTaken);
                 // No. of Days Payable = Net Present + Leave Not Deducted
-                $payableDays = $netPresent + $leaveNotDeducted;
+                $payableDays = $netPresent + $calcLeaveNotDeducted;
 
                 $detail = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
                     ->where('employee_id', $employeeId)
@@ -371,9 +386,9 @@ class AttendanceController extends Controller
                 }
 
                 $detail->total_days = $totalDays;
-                $detail->leave_taken = ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken;
+                $detail->leave_taken = ($leaveTaken !== null) ? (($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken) : null;
                 $detail->net_present = ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent;
-                $detail->leave_not_deducted = ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted;
+                $detail->leave_not_deducted = ($leaveNotDeducted !== null) ? (($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted) : null;
                 $detail->payable_days = ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays;
                 $detail->save();
             }
@@ -439,9 +454,9 @@ class AttendanceController extends Controller
         $records = [];
         foreach ($attendanceMonth->details as $detail) {
             $emp = $detail->employee;
-            $leaveTaken = (float)$detail->leave_taken;
+            $leaveTaken = $detail->leave_taken !== null ? (float)$detail->leave_taken : null;
             $netPresent = (float)$detail->net_present;
-            $leaveNotDeducted = (float)$detail->leave_not_deducted;
+            $leaveNotDeducted = $detail->leave_not_deducted !== null ? (float)$detail->leave_not_deducted : null;
             $payableDays = (float)$detail->payable_days;
 
             $records[] = [
@@ -450,9 +465,9 @@ class AttendanceController extends Controller
                 'salary_exists' => (bool) ($emp->salary_exists ?? false),
                 'branch_name' => ($emp && $emp->branch) ? $emp->branch->name : 'N/A',
                 'total_days' => $detail->total_days,
-                'leave_taken' => ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken,
+                'leave_taken' => $leaveTaken !== null ? (($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken) : null,
                 'net_present' => ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent,
-                'leave_not_deducted' => ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted,
+                'leave_not_deducted' => $leaveNotDeducted !== null ? (($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted) : null,
                 'payable_days' => ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays,
             ];
         }
@@ -480,37 +495,43 @@ class AttendanceController extends Controller
 
         // Server-Side Validations
         foreach ($request->details as $index => $empData) {
-            $leaveTaken = (float)($empData['leave_taken'] ?? 0);
-            $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
+            $rawLeaveTaken = $empData['leave_taken'] ?? null;
+            $rawLeaveNotDeducted = $empData['leave_not_deducted'] ?? null;
+
+            $leaveTaken = ($rawLeaveTaken !== null && trim($rawLeaveTaken) !== '') ? (float)$rawLeaveTaken : null;
+            $leaveNotDeducted = ($rawLeaveNotDeducted !== null && trim($rawLeaveNotDeducted) !== '') ? (float)$rawLeaveNotDeducted : null;
+
+            $calcLeaveTaken = $leaveTaken ?? 0;
+            $calcLeaveNotDeducted = $leaveNotDeducted ?? 0;
 
             $employee = Employee::find($empData['employee_id']);
             $empName = $employee ? $employee->name : 'Employee #' . ($index + 1);
 
-            if ($leaveTaken < 0) {
+            if ($leaveTaken !== null && $leaveTaken < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveTaken > $totalDays) {
+            if ($leaveTaken !== null && $leaveTaken > $totalDays) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} ({$leaveTaken} days) cannot be greater than No. of Days in Month ({$totalDays}).",
                 ], 422);
             }
 
-            if ($leaveNotDeducted < 0) {
+            if ($leaveNotDeducted !== null && $leaveNotDeducted < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Not Deducted for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveNotDeducted > $leaveTaken) {
+            if ($leaveNotDeducted !== null && $leaveNotDeducted > $calcLeaveTaken) {
                 return response()->json([
                     'status' => false,
-                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$leaveTaken} days).",
+                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$calcLeaveTaken} days).",
                 ], 422);
             }
         }
@@ -523,12 +544,18 @@ class AttendanceController extends Controller
 
             foreach ($request->details as $empData) {
                 $employeeId = $empData['employee_id'];
-                $leaveTaken = (float)($empData['leave_taken'] ?? 0);
-                $leaveNotDeducted = (float)($empData['leave_not_deducted'] ?? 0);
+                $rawLeaveTaken = $empData['leave_taken'] ?? null;
+                $rawLeaveNotDeducted = $empData['leave_not_deducted'] ?? null;
+
+                $leaveTaken = ($rawLeaveTaken !== null && trim($rawLeaveTaken) !== '') ? (float)$rawLeaveTaken : null;
+                $leaveNotDeducted = ($rawLeaveNotDeducted !== null && trim($rawLeaveNotDeducted) !== '') ? (float)$rawLeaveNotDeducted : null;
+
+                $calcLeaveTaken = $leaveTaken ?? 0;
+                $calcLeaveNotDeducted = $leaveNotDeducted ?? 0;
 
                 // Auto formulas:
-                $netPresent = max(0, $totalDays - $leaveTaken);
-                $payableDays = $netPresent + $leaveNotDeducted;
+                $netPresent = max(0, $totalDays - $calcLeaveTaken);
+                $payableDays = $netPresent + $calcLeaveNotDeducted;
 
                 $detail = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
                     ->where('employee_id', $employeeId)
@@ -544,9 +571,9 @@ class AttendanceController extends Controller
                 }
 
                 $detail->total_days = $totalDays;
-                $detail->leave_taken = ($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken;
+                $detail->leave_taken = ($leaveTaken !== null) ? (($leaveTaken == (int)$leaveTaken) ? (int)$leaveTaken : $leaveTaken) : null;
                 $detail->net_present = ($netPresent == (int)$netPresent) ? (int)$netPresent : $netPresent;
-                $detail->leave_not_deducted = ($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted;
+                $detail->leave_not_deducted = ($leaveNotDeducted !== null) ? (($leaveNotDeducted == (int)$leaveNotDeducted) ? (int)$leaveNotDeducted : $leaveNotDeducted) : null;
                 $detail->payable_days = ($payableDays == (int)$payableDays) ? (int)$payableDays : $payableDays;
                 $detail->save();
             }

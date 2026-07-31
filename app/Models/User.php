@@ -50,8 +50,16 @@ class User extends Authenticatable
     public function companies()
     {
         return $this->belongsToMany(Company::class, 'user_companies', 'user_id', 'company_id')
-                    ->withPivot('is_default', 'status')
-                    ->withTimestamps();
+            ->withPivot('is_default', 'status')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the employee profile linked to this user account.
+     */
+    public function employee()
+    {
+        return $this->hasOne(Employee::class);
     }
 
     /**
@@ -62,4 +70,3 @@ class User extends Authenticatable
         return in_array($this->role, ['super_admin', 'admin']) || $this->email === 'admin@gmail.com';
     }
 }
-

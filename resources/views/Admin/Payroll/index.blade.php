@@ -83,7 +83,7 @@
                         </div>
 
                         <!-- Status Select -->
-                        <div class="col-md-3">
+                        {{-- <div class="col-md-3">
                             <label for="filter_status" class="form-label small fw-semibold">Status</label>
                             <select class="form-select form-select-sm select2" id="filter_status" name="status">
                                 <option value="">All Statuses</option>
@@ -91,7 +91,7 @@
                                     <option value="{{ $st }}">{{ $st }}</option>
                                 @endforeach
                             </select>
-                        </div>
+                        </div> --}}
                     </div>
                 </form>
 

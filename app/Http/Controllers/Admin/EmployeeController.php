@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
@@ -532,13 +533,13 @@ class EmployeeController extends Controller
                 $q->whereHas('attendanceMonth', function ($am) {
                     $am->forCurrentCompany();
                 })->with(['attendanceMonth.company', 'attendanceMonth.branch', 'attendanceMonth.creator'])
-                  ->orderBy('id', 'desc');
+                    ->orderBy('id', 'desc');
             },
             'payrollDetails' => function ($q) {
                 $q->whereHas('payroll', function ($pr) {
                     $pr->forCurrentCompany();
                 })->with(['payroll.company', 'payroll.branch', 'payroll.creator'])
-                  ->orderBy('id', 'desc');
+                    ->orderBy('id', 'desc');
             },
         ]);
 
@@ -548,8 +549,8 @@ class EmployeeController extends Controller
             $reportingManager = Employee::forCurrentCompany()
                 ->where(function ($q) use ($employee) {
                     $q->where('employee_code', $employee->reporting_to)
-                      ->orWhere('name', $employee->reporting_to)
-                      ->orWhere('id', $employee->reporting_to);
+                        ->orWhere('name', $employee->reporting_to)
+                        ->orWhere('id', $employee->reporting_to);
                 })
                 ->first();
         }
@@ -819,13 +820,13 @@ class EmployeeController extends Controller
                 $q->whereHas('attendanceMonth', function ($am) {
                     $am->forCurrentCompany();
                 })->with(['attendanceMonth'])
-                  ->orderBy('id', 'desc');
+                    ->orderBy('id', 'desc');
             },
             'payrollDetails' => function ($q) {
                 $q->whereHas('payroll', function ($pr) {
                     $pr->forCurrentCompany();
                 })->with(['payroll'])
-                  ->orderBy('id', 'desc');
+                    ->orderBy('id', 'desc');
             },
         ]);
 

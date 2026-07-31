@@ -1,16 +1,25 @@
 <?php
 
-use App\Http\Controllers\BranchController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceReportController;
-use App\Http\Controllers\EmployeeSalaryController;
-use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\Admin\EmployeeSalaryController;
+use App\Http\Controllers\Admin\PayrollController;
+use App\Http\Controllers\Admin\PayrollProcessingController;
+use App\Http\Controllers\EmployeePortal\EmployeeDashboardController;
+use App\Http\Controllers\EmployeePortal\EmployeeProfileController;
+use App\Http\Controllers\EmployeePortal\EmployeeAttendanceController;
+use App\Http\Controllers\EmployeePortal\EmployeeSalaryHistoryController;
+use App\Http\Controllers\EmployeePortal\EmployeePayrollHistoryController;
+use App\Http\Controllers\EmployeePortal\EmployeePayslipController;
+use App\Http\Controllers\EmployeePortal\EmployeeDocumentController;
+use App\Http\Middleware\EmployeeMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login
@@ -68,6 +77,8 @@ Route::middleware('auth')->group(function () {
     Route::get('attendance-report/export-excel', [AttendanceReportController::class, 'exportExcel'])->name('attendance-report.export-excel');
 
     // Payroll
+    Route::get('payroll-processing', [PayrollProcessingController::class, 'index'])->name('payroll-processing.index');
+    Route::get('payroll-processing/details/{year}/{month}', [PayrollProcessingController::class, 'show'])->name('payroll-processing.show');
     Route::get('payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
     Route::get('payrolls/create', [PayrollController::class, 'create'])->name('payrolls.create');
     Route::post('payrolls/load-employees', [PayrollController::class, 'loadEmployees'])->name('payrolls.loadEmployees');
@@ -76,4 +87,29 @@ Route::middleware('auth')->group(function () {
     Route::delete('payrolls/{payroll}', [PayrollController::class, 'destroy'])->name('payrolls.destroy');
     Route::get('payrolls/salary-slip/{detail}', [PayrollController::class, 'salarySlip'])->name('payrolls.salary-slip');
     Route::get('payrolls/salary-slip/{detail}/pdf', [PayrollController::class, 'salarySlipPdf'])->name('payrolls.salary-slip.pdf');
+});
+
+// Employee Self-Service (ESS) Portal Routes
+Route::middleware(['auth', EmployeeMiddleware::class])->prefix('employee')->name('employee.')->group(function () {
+    Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profile', [EmployeeProfileController::class, 'show'])->name('profile');
+    Route::get('/profile/pdf', [EmployeeProfileController::class, 'downloadPdf'])->name('profile.pdf');
+    Route::get('/attendance', [EmployeeAttendanceController::class, 'index'])->name('attendance');
+    Route::get('/salary-history', [EmployeeSalaryHistoryController::class, 'index'])->name('salary-history');
+    Route::get('/payroll-history', [EmployeePayrollHistoryController::class, 'index'])->name('payroll-history');
+    Route::get('/payslips', [EmployeePayslipController::class, 'index'])->name('payslips.index');
+    Route::get('/payslips/{detail}', [EmployeePayslipController::class, 'show'])->name('payslips.show');
+    Route::get('/payslips/{detail}/pdf', [EmployeePayslipController::class, 'downloadPdf'])->name('payslips.pdf');
+    Route::get('/documents', [EmployeeDocumentController::class, 'index'])->name('documents');
+    Route::get('/documents/download/{type}', [EmployeeDocumentController::class, 'download'])->name('documents.download');
+
+    /*
+    | Future Modules Reserved Routing Structure (Hidden / Inactive for now):
+    | Route::get('/leave', [EmployeeLeaveController::class, 'index'])->name('leave.index');
+    | Route::get('/holidays', [EmployeeHolidayController::class, 'index'])->name('holidays.index');
+    | Route::get('/assets', [EmployeeAssetController::class, 'index'])->name('assets.index');
+    | Route::get('/helpdesk', [EmployeeHelpdeskController::class, 'index'])->name('helpdesk.index');
+    | Route::get('/training', [EmployeeTrainingController::class, 'index'])->name('training.index');
+    | Route::get('/performance', [EmployeePerformanceController::class, 'index'])->name('performance.index');
+    */
 });

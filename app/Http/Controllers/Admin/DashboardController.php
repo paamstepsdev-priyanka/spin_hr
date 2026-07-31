@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\AttendanceMonth;
 use App\Models\Branch;
 use App\Models\Company;
@@ -177,11 +178,11 @@ class DashboardController extends Controller
                 ->where('status', 'active')
                 ->whereDoesntHave('salaries', function ($q) use ($firstDate, $lastDate) {
                     $q->where('status', 'active')
-                      ->where('effective_from', '<=', $lastDate)
-                      ->where(function ($sub) use ($firstDate) {
-                          $sub->whereNull('effective_to')
-                              ->orWhere('effective_to', '>=', $firstDate);
-                      });
+                        ->where('effective_from', '<=', $lastDate)
+                        ->where(function ($sub) use ($firstDate) {
+                            $sub->whereNull('effective_to')
+                                ->orWhere('effective_to', '>=', $firstDate);
+                        });
                 })
                 ->count();
 
@@ -322,5 +323,3 @@ class DashboardController extends Controller
         return view('Admin.Dashboard.index', compact('stats', 'currentCompany', 'user', 'now'));
     }
 }
-
-

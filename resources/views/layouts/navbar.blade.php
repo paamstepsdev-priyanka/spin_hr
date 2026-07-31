@@ -63,6 +63,13 @@
             </ul>
         </li>
 
+         <li class="my-1">
+            <a href="{{ route('payroll-processing.index') }}" class="{{ request()->routeIs('payroll-processing.*') ? 'active' : '' }}">
+                <i class="bi bi-kanban"></i>
+                <span>Attendance & Payroll</span>
+            </a>
+        </li>
+
         <!-- Attendance Dropdown -->
         @php
             $isAttendanceActive = request()->routeIs('attendance.*') || request()->routeIs('attendance-report.*');
@@ -93,7 +100,7 @@
 
         <!-- Payroll Dropdown -->
         @php
-            $isPayrollActive = request()->routeIs('payrolls.*');
+            $isPayrollActive = request()->routeIs('payroll-processing.*') || request()->routeIs('payrolls.*');
         @endphp
         <li>
             <a href="#payrollSubmenu" data-bs-toggle="collapse" data-coreui-toggle="collapse" aria-expanded="{{ $isPayrollActive ? 'true' : 'false' }}" class="d-flex align-items-center justify-content-between {{ $isPayrollActive ? '' : 'collapsed' }}">
@@ -104,6 +111,7 @@
                 <i class="bi bi-chevron-down small"></i>
             </a>
             <ul class="collapse list-unstyled ps-3 mt-1 {{ $isPayrollActive ? 'show' : '' }}" id="payrollSubmenu">
+              
                 <li class="my-1">
                     <a href="{{ route('payrolls.index') }}" class="{{ request()->routeIs('payrolls.*') ? 'active' : '' }}">
                         <i class="bi bi-cash-stack"></i>

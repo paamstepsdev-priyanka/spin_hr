@@ -92,7 +92,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label for="esi" class="form-label fw-semibold small">ESI</label>
+                        <label for="esi" class="form-label fw-semibold small">Employee State Insurance</label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">₹</span>
                             <input type="number" step="0.01" min="0" class="form-control salary-calc-input" id="esi" name="esi" value="{{ old('esi', (isset($salary) && $salary->esi > 0) ? $salary->esi : '') }}" placeholder="0.00">

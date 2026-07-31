@@ -161,15 +161,23 @@
             </div>
 
             <!-- Password -->
-            @if(!isset($employee))
             <div class="col-md-4">
                 <label for="password" class="form-label fw-semibold">
-                    Password <span class="text-danger">*</span>
+                    Password 
+                    @if(!isset($employee))
+                        <span class="text-danger">*</span>
+                    @else
+                        <small class="text-muted fw-normal">(Leave blank to keep existing)</small>
+                    @endif
                 </label>
-                <input type="password" class="form-control" id="password" name="password" placeholder="e.g. password">
+                <div class="input-group">
+                    <input type="password" class="form-control" id="password" name="password" placeholder="{{ isset($employee) ? 'Leave blank to keep existing' : 'Enter login password' }}">
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('password', 'togglePassIcon')">
+                        <i class="bi bi-eye" id="togglePassIcon"></i>
+                    </button>
+                </div>
                 <div class="text-danger small mt-1" id="password-error"></div>
             </div>
-            @endif
 
             <!-- Mobile -->
             <div class="col-md-4">
@@ -479,3 +487,21 @@
         </div>
     </div>
 </div>
+
+<script>
+function togglePasswordVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input && icon) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+}
+</script>
