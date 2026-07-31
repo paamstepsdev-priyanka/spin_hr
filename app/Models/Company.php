@@ -44,12 +44,30 @@ class Company extends Model
         return $this->hasMany(Employee::class);
     }
 
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \App\Services\CompanyScope::clearCache();
+        });
+        static::deleted(function () {
+            \App\Services\CompanyScope::clearCache();
+        });
+    }
+
     /**
      * Get the monthly attendance records for the company.
      */
     public function attendanceMonths()
     {
         return $this->hasMany(AttendanceMonth::class);
+    }
+
+    /**
+     * Get the payroll records for the company.
+     */
+    public function payrolls()
+    {
+        return $this->hasMany(Payroll::class);
     }
 }
 

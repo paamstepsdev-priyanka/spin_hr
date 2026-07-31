@@ -11,39 +11,33 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <!-- Header Banner Block -->
+        <!-- Single Unified Card -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body bg-body-tertiary rounded p-3 d-flex justify-content-between align-items-center">
+            <!-- Card Header: Title & Action Button -->
+            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
                 <h4 class="mb-0 fw-bold text-body">Payroll History & Management</h4>
                 <a href="{{ route('payrolls.create') }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
                     <i class="bi bi-plus-lg me-1"></i>
                     Generate Payroll
                 </a>
             </div>
-        </div>
 
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <div id="alert-container"></div>
-
-        <!-- Filter Card -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-body">Filter Payroll History</h5>
-                <button type="button" class="btn btn-outline-secondary btn-sm fw-semibold" id="btn-reset-filters">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
-                </button>
-            </div>
+            <!-- Card Body: Filters + Payroll Data Table -->
             <div class="card-body p-3">
-                <form id="payroll-filter-form">
+                @if(session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                <div id="alert-container"></div>
+
+                <!-- Filter Section -->
+                <form id="payroll-filter-form" class="bg-body-tertiary p-3 rounded mb-3 border border-light-subtle">
                     <div class="row g-3 align-items-end">
                         <!-- Company Dropdown -->
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="filter_company_id" class="form-label small fw-semibold">Company</label>
                             <select class="form-select form-select-sm select2" id="filter_company_id" name="company_id" {{ isset($selectedCompanyId) && $selectedCompanyId !== null ? 'disabled' : '' }}>
                                 @if(!isset($selectedCompanyId) || $selectedCompanyId === null)
@@ -89,7 +83,7 @@
                         </div>
 
                         <!-- Status Select -->
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="filter_status" class="form-label small fw-semibold">Status</label>
                             <select class="form-select form-select-sm select2" id="filter_status" name="status">
                                 <option value="">All Statuses</option>
@@ -100,20 +94,14 @@
                         </div>
                     </div>
                 </form>
-            </div>
-        </div>
 
-        <!-- Saved Payroll History Card -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-body">Payroll History Batches</h5>
-            </div>
-            <div class="card-body p-3">
+                <!-- Data Table -->
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100 text-nowrap" id="payrolls-table">
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="fw-bold text-center" style="width: 30px;">#</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 90px;">Action</th>
                                 <th scope="col" class="fw-bold text-start">Company</th>
                                 <th scope="col" class="fw-bold text-start">Branch</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 90px;">Month</th>
@@ -123,7 +111,6 @@
                                 <th scope="col" class="fw-bold text-center" style="width: 90px;">Status</th>
                                 <th scope="col" class="fw-bold text-start" style="width: 120px;">Generated By</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 130px;">Generated Date</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 90px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -164,6 +151,7 @@
             },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
+                { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'company_name', name: 'company.name' },
                 { data: 'branch_name', name: 'branch.name' },
                 { data: 'month', name: 'month', className: 'text-center fw-semibold' },
@@ -173,7 +161,6 @@
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'created_by', name: 'creator.name' },
                 { data: 'created_at', name: 'created_at', className: 'text-center' },
-                { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
             language: {
                 search: "Search History:",

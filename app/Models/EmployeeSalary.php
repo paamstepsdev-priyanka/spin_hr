@@ -13,6 +13,18 @@ class EmployeeSalary extends Model
 
     protected $table = 'employee_salaries';
 
+    protected static function booted(): void
+    {
+        static::saved(function ($model) {
+            $companyId = $model->employee ? $model->employee->company_id : null;
+            \App\Services\CompanyScope::clearCache($companyId);
+        });
+        static::deleted(function ($model) {
+            $companyId = $model->employee ? $model->employee->company_id : null;
+            \App\Services\CompanyScope::clearCache($companyId);
+        });
+    }
+
     protected $fillable = [
         'employee_id',
         'basic_salary',

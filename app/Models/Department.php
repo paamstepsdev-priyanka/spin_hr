@@ -10,6 +10,16 @@ class Department extends Model
 {
     use HasFactory, HasCompanyScope;
 
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            \App\Services\CompanyScope::clearCache();
+        });
+        static::deleted(function () {
+            \App\Services\CompanyScope::clearCache();
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *

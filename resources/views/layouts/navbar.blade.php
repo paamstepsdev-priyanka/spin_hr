@@ -57,7 +57,7 @@
                 <li class="my-1">
                     <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">
                         <i class="bi bi-person-badge"></i>
-                        <span>Employees List</span>
+                        <span>Employees</span>
                     </a>
                 </li>
             </ul>
@@ -79,13 +79,13 @@
                 <li class="my-1">
                     <a href="{{ route('attendance.index') }}" class="{{ request()->routeIs('attendance.*') ? 'active' : '' }}">
                         <i class="bi bi-calendar-check"></i>
-                        <span>Monthly Attendance</span>
+                        <span>Attendance</span>
                     </a>
                 </li>
                 <li class="my-1">
                     <a href="{{ route('attendance-report.index') }}" class="{{ request()->routeIs('attendance-report.*') ? 'active' : '' }}">
                         <i class="bi bi-file-earmark-bar-graph"></i>
-                        <span>Attendance Report</span>
+                        <span> Report</span>
                     </a>
                 </li>
             </ul>
@@ -107,7 +107,7 @@
                 <li class="my-1">
                     <a href="{{ route('payrolls.index') }}" class="{{ request()->routeIs('payrolls.*') ? 'active' : '' }}">
                         <i class="bi bi-cash-stack"></i>
-                        <span>Payroll Management</span>
+                        <span>Salary Slip</span>
                     </a>
                 </li>
             </ul>

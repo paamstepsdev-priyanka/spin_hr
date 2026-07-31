@@ -18,20 +18,16 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <!-- Header Banner Card -->
+        <!-- Single Unified Card -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body bg-body-tertiary rounded p-3">
+            <!-- Card Header: Title -->
+            <div class="card-header bg-body-tertiary border-0 py-3">
                 <h4 class="mb-0 fw-bold text-body">Attendance Report</h4>
             </div>
-        </div>
 
-        <!-- Filter Card -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-body-tertiary border-0 py-3">
-                <h5 class="mb-0 fw-bold text-body">Report Filters</h5>
-            </div>
+            <!-- Card Body: Report Filters & Output -->
             <div class="card-body p-3">
-                <form id="attendance-report-form">
+                <form id="attendance-report-form" class="bg-body-tertiary p-3 rounded mb-3 border border-light-subtle">
                     @csrf
                     <div class="row g-3 align-items-end">
                         <!-- Company (Required) -->
@@ -104,13 +100,13 @@
                         </div>
                     </div>
                 </form>
+
+                <div id="alert-container"></div>
+
+                <!-- Generated Report Output Section -->
+                <div id="report-output-container"></div>
             </div>
         </div>
-
-        <div id="alert-container"></div>
-
-        <!-- Generated Report Output Section -->
-        <div id="report-output-container"></div>
     </div>
 </div>
 

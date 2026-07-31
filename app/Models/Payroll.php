@@ -13,6 +13,16 @@ class Payroll extends Model
 {
     use HasFactory, SoftDeletes, HasCompanyScope;
 
+    protected static function booted(): void
+    {
+        static::saved(function ($model) {
+            \App\Services\CompanyScope::clearCache($model->company_id);
+        });
+        static::deleted(function ($model) {
+            \App\Services\CompanyScope::clearCache($model->company_id);
+        });
+    }
+
     protected $fillable = [
         'company_id',
         'branch_id',

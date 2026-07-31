@@ -9,78 +9,70 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <!-- Header Banner Block -->
+        <!-- Single Unified Card -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body bg-body-tertiary rounded p-3 d-flex justify-content-between align-items-center">
+            <!-- Card Header: Title & Action Button -->
+            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
                 <h4 class="mb-0 fw-bold text-body">Employees</h4>
-               
-                  <div class="row g-3">
-                    <!-- Company Filter -->
-                    <div class="col-md-3">
-                        <select class="form-select form-select-sm" id="filter_company_id" {{ isset($selectedCompanyId) && $selectedCompanyId !== null ? 'disabled' : '' }}>
-                            @if(!isset($selectedCompanyId) || $selectedCompanyId === null)
-                                <option value="">All Companies</option>
-                            @endif
-                            @foreach($companies as $company)
-                                <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Branch Filter -->
-                    <div class="col-md-3">
-                        <select class="form-select form-select-sm" id="filter_branch_id">
-                            <option value="">All Branches</option>
-                            @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Employee Type Filter -->
-                    <div class="col-md-3">
-                        <select class="form-select form-select-sm" id="filter_employment_type">
-                            <option value="">All Employee Types</option>
-                            <option value="Permanent">Permanent</option>
-                            <option value="Consultant">Consultant</option>
-                        </select>
-                    </div>
-
-                    <!-- Status Filter -->
-                    <div class="col-md-3">
-                        <select class="form-select form-select-sm" id="filter_status">
-                            <option value="">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-                </div>
-
-                 <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
-                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                    </svg>
+                <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
+                    <i class="bi bi-plus-lg me-1"></i>
                     Add Employee
                 </a>
-                {{-- <div class="d-flex justify-content-end gap-2 mt-3">
-                    <button type="button" id="btn-reset-filter" class="btn btn-sm btn-outline-secondary px-3">Reset Filters</button>
-                </div> --}}
             </div>
-        </div>
 
-        <div id="alert-container"></div>
-
-        {{-- <!-- Filter Card -->
-        <div class="card border-0 shadow-sm mb-4">
-            
+            <!-- Card Body: Filters + Table -->
             <div class="card-body p-3">
-              
-            </div>
-        </div> --}}
+                <div id="alert-container"></div>
 
-        <!-- Main Content Card -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-3">
+                <!-- Filter Section -->
+                <form id="employee-filter-form" class="bg-body-tertiary p-3 rounded mb-3 border border-light-subtle">
+                    <div class="row g-3 align-items-end">
+                        <!-- Company Filter -->
+                        <div class="col-md-3">
+                            <label for="filter_company_id" class="form-label small fw-semibold">Company</label>
+                            <select class="form-select form-select-sm" id="filter_company_id" {{ isset($selectedCompanyId) && $selectedCompanyId !== null ? 'disabled' : '' }}>
+                                @if(!isset($selectedCompanyId) || $selectedCompanyId === null)
+                                    <option value="">All Companies</option>
+                                @endif
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Branch Filter -->
+                        <div class="col-md-3">
+                            <label for="filter_branch_id" class="form-label small fw-semibold">Branch</label>
+                            <select class="form-select form-select-sm" id="filter_branch_id">
+                                <option value="">All Branches</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Employee Type Filter -->
+                        <div class="col-md-3">
+                            <label for="filter_employment_type" class="form-label small fw-semibold">Employee Type</label>
+                            <select class="form-select form-select-sm" id="filter_employment_type">
+                                <option value="">All Employee Types</option>
+                                <option value="Permanent">Permanent</option>
+                                <option value="Consultant">Consultant</option>
+                            </select>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div class="col-md-3">
+                            <label for="filter_status" class="form-label small fw-semibold">Status</label>
+                            <select class="form-select form-select-sm" id="filter_status">
+                                <option value="">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+
                 <!-- Toolbar: Export / Print Buttons -->
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <div class="btn-group btn-group-sm" role="group">

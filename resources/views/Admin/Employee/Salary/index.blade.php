@@ -18,9 +18,10 @@
             </ol>
         </nav>
 
-        <!-- Header Banner Block -->
+        <!-- Single Unified Card -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body bg-body-tertiary rounded p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <!-- Card Header: Title, Employee Summary & Action Buttons -->
+            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                     <h4 class="mb-1 fw-bold text-body">Salary Management</h4>
                     <div class="text-muted small">
@@ -32,27 +33,21 @@
                 
                 <div class="d-flex gap-2">
                     <a href="{{ route('employees.index') }}" class="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center gap-1">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-                        </svg>
+                        <i class="bi bi-arrow-left me-1"></i>
                         Back to Employees
                     </a>
 
                     <a href="{{ route('employees.salaries.create', $employee->id) }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
-                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                        </svg>
+                        <i class="bi bi-plus-lg me-1"></i>
                         Add Salary
                     </a>
                 </div>
             </div>
-        </div>
 
-        <div id="alert-container"></div>
-
-        <!-- Salary Listing Table Card -->
-        <div class="card border-0 shadow-sm">
+            <!-- Card Body: Salary Listing Table -->
             <div class="card-body p-3">
+                <div id="alert-container"></div>
+
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered table-striped align-middle small mb-0 w-100" id="salaries-table">
                         <thead class="table-light">
@@ -67,7 +62,6 @@
                                 <th scope="col" class="fw-bold">Gross Salary</th>
                                 <th scope="col" class="fw-bold">Total Deduction</th>
                                 <th scope="col" class="fw-bold">Net Salary</th>
-                               
                             </tr>
                         </thead>
                         <tbody>

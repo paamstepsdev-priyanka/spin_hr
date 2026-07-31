@@ -9,21 +9,18 @@
 @section('content')
 <div class="row">
     <div class="col-12">
-        <!-- Header Banner Block -->
+        <!-- Single Unified Card -->
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body bg-body-tertiary rounded p-3 d-flex justify-content-between align-items-center">
+            <!-- Card Header: Title & Action Button -->
+            <div class="card-header bg-body-tertiary border-0 py-3 d-flex justify-content-between align-items-center">
                 <h4 class="mb-0 fw-bold text-body">Departments</h4>
                 <a href="{{ route('departments.create') }}" class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1">
-                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                    </svg>
+                    <i class="bi bi-plus-lg me-1"></i>
                     Add Department
                 </a>
             </div>
-        </div>
 
-        <!-- Main Content Card -->
-        <div class="card border-0 shadow-sm">
+            <!-- Card Body: Toolbar & Departments Table -->
             <div class="card-body p-3">
                 <!-- Toolbar: Export Buttons -->
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">

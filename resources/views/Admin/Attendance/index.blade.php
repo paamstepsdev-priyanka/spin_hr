@@ -81,6 +81,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th scope="col" class="fw-bold text-center" style="width: 30px;">#</th>
+                                <th scope="col" class="fw-bold text-center" style="width: 120px;">Action</th>
                                 <th scope="col" class="fw-bold text-start">Company</th>
                                 <th scope="col" class="fw-bold text-start">Branch</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 100px;">Month</th>
@@ -89,7 +90,6 @@
                                 <th scope="col" class="fw-bold text-center" style="width: 90px;">Status</th>
                                 <th scope="col" class="fw-bold text-start" style="width: 130px;">Created By</th>
                                 <th scope="col" class="fw-bold text-center" style="width: 140px;">Created Date</th>
-                                <th scope="col" class="fw-bold text-center" style="width: 120px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -130,6 +130,7 @@
             },
             columns: [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center text-muted' },
+                { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'company_name', name: 'company.name' },
                 { data: 'branch_name', name: 'branch.name' },
                 { data: 'month', name: 'month', className: 'text-center fw-semibold' },
@@ -138,7 +139,6 @@
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'created_by', name: 'creator.name' },
                 { data: 'created_at', name: 'created_at', className: 'text-center' },
-                { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
             language: {
                 search: "Search History:",

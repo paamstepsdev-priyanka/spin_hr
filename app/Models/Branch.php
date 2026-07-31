@@ -12,6 +12,16 @@ class Branch extends Model
 {
     use HasFactory, SoftDeletes, HasCompanyScope;
 
+    protected static function booted(): void
+    {
+        static::saved(function ($model) {
+            \App\Services\CompanyScope::clearCache($model->company_id);
+        });
+        static::deleted(function ($model) {
+            \App\Services\CompanyScope::clearCache($model->company_id);
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *
