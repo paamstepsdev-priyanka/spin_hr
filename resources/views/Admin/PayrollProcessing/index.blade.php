@@ -122,8 +122,7 @@
     </div>
 
     @php
-        $pastMonths = array_filter($processedMonths, fn($m) => $m['is_past']);
-        $currentMonthArr = array_filter($processedMonths, fn($m) => $m['is_current']);
+        $activeAndPastMonths = array_filter($processedMonths, fn($m) => !$m['is_future']);
         $futureMonths = array_filter($processedMonths, fn($m) => $m['is_future']);
     @endphp
 
@@ -131,93 +130,83 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3 p-md-4">
             
-            <!-- Section 1: Past & Current Months -->
+            <!-- Section 1: Past & Active Months -->
             <div class="d-flex align-items-center gap-2 mb-3">
                 <span class="fw-bold text-secondary small text-uppercase tracking-wider">Past & Active Months</span>
                 <div class="flex-grow-1 border-bottom"></div>
             </div>
 
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3 mb-4">
-                
-                @foreach($pastMonths as $m)
+                @foreach($activeAndPastMonths as $m)
                     <div class="col">
-                        <div class="card h-100 border border-light shadow-sm">
+                        <div class="card h-100 {{ $m['is_current'] ? 'border border-warning shadow' : 'border border-light shadow-sm' }}">
                             <div class="card-header bg-transparent border-0 pt-3 px-3 pb-0 d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                    @if($m['is_complete'])
+                                        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                    @elseif($m['is_current'])
+                                        <i class="bi bi-clock-history text-warning fs-5"></i>
+                                    @else
+                                        <i class="bi bi-exclamation-circle-fill text-warning fs-5"></i>
+                                    @endif
                                     <span class="fw-bold text-dark">{{ $m['short_name'] }}</span>
                                     <span class="text-secondary small">{{ $m['year'] }}</span>
                                 </div>
+                                @if($m['is_current'])
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">Current</span>
+                                @endif
                             </div>
                             <div class="card-body p-3 small">
-                                <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
+                                <!-- Step 1: Attendance (Always shown) -->
+                                <div class="d-flex justify-content-between align-items-center py-1 {{ $m['has_attendance'] ? 'border-bottom border-light' : '' }}">
                                     <span class="text-secondary"><i class="bi bi-people me-1 text-muted"></i>Attendance</span>
-                                    <span class="fw-semibold {{ $m['att_status'] === 'Completed' ? 'text-success' : ($m['att_status'] === 'In Progress' ? 'text-primary' : 'text-warning') }}">
+                                    <span class="fw-semibold {{ $m['has_attendance'] ? 'text-success' : 'text-warning' }}">
                                         {{ $m['att_status'] }}
                                     </span>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
-                                    <span class="text-secondary"><i class="bi bi-wallet2 me-1 text-muted"></i>Salary</span>
-                                    <span class="fw-semibold {{ $m['pay_status'] === 'Generated' || $m['pay_status'] === 'Paid' ? 'text-success' : ($m['pay_status'] === 'Locked' ? 'text-secondary' : 'text-warning') }}">
-                                        {{ $m['pay_status'] }}
-                                    </span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center py-1">
-                                    <span class="text-secondary"><i class="bi bi-file-earmark-text me-1 text-muted"></i>Payslip</span>
-                                    <span class="fw-semibold {{ $m['payslip_status'] === 'Generated' ? 'text-info' : 'text-secondary' }}">
-                                        {{ $m['payslip_status'] }}
-                                    </span>
-                                </div>
+
+                                <!-- Step 2: Salary (Shown ONLY IF Attendance is Completed) -->
+                                @if($m['has_attendance'])
+                                    <div class="d-flex justify-content-between align-items-center py-1 {{ $m['has_payroll'] ? 'border-bottom border-light' : '' }}">
+                                        <span class="text-secondary"><i class="bi bi-wallet2 me-1 text-muted"></i>Salary</span>
+                                        <span class="fw-semibold {{ $m['has_payroll'] ? 'text-success' : 'text-warning' }}">
+                                            {{ $m['pay_status'] }}
+                                        </span>
+                                    </div>
+                                @endif
+
+                                <!-- Step 3: Payslip (Shown ONLY IF Payroll is Generated) -->
+                                @if($m['has_payroll'])
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <span class="text-secondary"><i class="bi bi-file-earmark-text me-1 text-muted"></i>Payslip</span>
+                                        <span class="fw-semibold {{ $m['has_payslip'] ? 'text-info' : 'text-warning' }}">
+                                            {{ $m['payslip_status'] }}
+                                        </span>
+                                    </div>
+                                @endif
                             </div>
                             <div class="card-footer bg-transparent border-0 p-3 pt-0">
-                                <a href="{{ route('payroll-processing.show', [$m['year'], $m['month']]) }}" class="btn btn-outline-primary btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1">
-                                    <i class="bi bi-eye"></i> View Details
-                                </a>
+                                @if($m['can_generate_attendance'])
+                                    <a href="{{ route('attendance.create', ['month' => $m['month'], 'year' => $m['year']]) }}" class="btn {{ $m['is_current'] ? 'btn-outline-warning' : 'btn-outline-primary' }} btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
+                                        <i class="bi bi-plus-circle"></i> Generate Attendance
+                                    </a>
+                                @elseif($m['can_generate_payroll'])
+                                    <a href="{{ route('payrolls.create', ['month' => $m['month'], 'year' => $m['year']]) }}" class="btn {{ $m['is_current'] ? 'btn-outline-warning' : 'btn-outline-primary' }} btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
+                                        <i class="bi bi-currency-rupee"></i> Generate Payroll
+                                    </a>
+                                @elseif($m['can_generate_payslip'])
+                                    <a href="{{ route('payroll-processing.show', [$m['year'], $m['month']]) }}" class="btn btn-outline-info btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
+                                        <i class="bi bi-file-earmark-plus"></i> Generate Payslip
+                                    </a>
+                                @elseif($m['can_view_details'])
+                                    <a href="{{ route('payroll-processing.show', [$m['year'], $m['month']]) }}" class="btn {{ $m['is_current'] ? 'btn-outline-warning' : 'btn-outline-primary' }} btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
+                                        <i class="bi bi-eye"></i> View Details
+                                    </a>
+                                @endif
                             </div>
                         </div>
                     </div>
                 @endforeach
-
-                @foreach($currentMonthArr as $m)
-                    <div class="col">
-                        <div class="card h-100 border border-warning shadow">
-                            <div class="card-header bg-transparent border-0 pt-3 px-3 pb-0 d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-clock-history text-warning fs-5"></i>
-                                    <span class="fw-bold text-dark">{{ $m['short_name'] }}</span>
-                                    <span class="text-secondary small">{{ $m['year'] }}</span>
-                                </div>
-                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">Current</span>
-                            </div>
-                            <div class="card-body p-3 small">
-                                <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
-                                    <span class="text-secondary"><i class="bi bi-people me-1 text-muted"></i>Attendance</span>
-                                    <span class="fw-semibold {{ $m['att_status'] === 'Completed' ? 'text-success' : ($m['att_status'] === 'In Progress' ? 'text-primary' : 'text-warning') }}">
-                                        {{ $m['att_status'] }}
-                                    </span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
-                                    <span class="text-secondary"><i class="bi bi-wallet2 me-1 text-muted"></i>Salary</span>
-                                    <span class="fw-semibold {{ $m['pay_status'] === 'Generated' || $m['pay_status'] === 'Paid' ? 'text-success' : 'text-warning' }}">
-                                        {{ $m['pay_status'] }}
-                                    </span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center py-1">
-                                    <span class="text-secondary"><i class="bi bi-file-earmark-text me-1 text-muted"></i>Payslip</span>
-                                    <span class="fw-semibold {{ $m['payslip_status'] === 'Generated' ? 'text-info' : 'text-secondary' }}">
-                                        {{ $m['payslip_status'] }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="card-footer bg-transparent border-0 p-3 pt-0">
-                                <a href="{{ route('payroll-processing.show', [$m['year'], $m['month']]) }}" class="btn btn-outline-warning btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
-                                    <i class="bi bi-eye"></i> View Details
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-
             </div>
 
             <!-- Section 2: Future Months (Locked) -->

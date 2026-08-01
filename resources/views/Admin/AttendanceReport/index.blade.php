@@ -30,28 +30,24 @@
                 <form id="attendance-report-form" class="bg-body-tertiary p-3 rounded mb-3 border border-light-subtle">
                     @csrf
                     <div class="row g-3 align-items-end">
+                        @if($showCompanyFilter)
                         <!-- Company (Required) -->
                         <div class="col-md-3">
                             <label for="company_id" class="form-label small fw-semibold">Company <span class="text-danger">*</span></label>
-                            @if(isset($selectedCompanyId) && $selectedCompanyId !== null)
-                                @php
-                                    $compObj = $companies->firstWhere('id', $selectedCompanyId);
-                                @endphp
-                                <input type="text" class="form-control form-control-sm bg-light" value="{{ $compObj ? $compObj->name : 'Current Company' }}" readonly>
-                                <input type="hidden" name="company_id" id="company_id" value="{{ $selectedCompanyId }}">
-                            @else
-                                <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
-                                    <option value="">Select Company</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                    @endforeach
-                                </select>
-                            @endif
+                            <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
+                                <option value="">Select Company</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                @endforeach
+                            </select>
                             <div class="invalid-feedback small" id="err-company_id">Company is required.</div>
                         </div>
+                        @else
+                            <input type="hidden" name="company_id" id="company_id" value="{{ $currentCompanyId }}">
+                        @endif
 
                         <!-- Branch (Optional) -->
-                        <div class="col-md-2">
+                        <div class="{{ $showCompanyFilter ? 'col-md-2' : 'col-md-3' }}">
                             <label for="branch_id" class="form-label small fw-semibold">Branch</label>
                             <select class="form-select form-select-sm select2" id="branch_id" name="branch_id">
                                 <option value="">All Branches</option>
@@ -60,7 +56,7 @@
                         </div>
 
                         <!-- Employee (Optional) -->
-                        <div class="col-md-3">
+                        <div class="{{ $showCompanyFilter ? 'col-md-3' : 'col-md-3' }}">
                             <label for="employee_id" class="form-label small fw-semibold">Employee</label>
                             <select class="form-select form-select-sm select2" id="employee_id" name="employee_id">
                                 <option value="">All Employees</option>
@@ -69,7 +65,7 @@
                         </div>
 
                         <!-- Month (Required) -->
-                        <div class="col-md-2">
+                        <div class="{{ $showCompanyFilter ? 'col-md-2' : 'col-md-3' }}">
                             <label for="month" class="form-label small fw-semibold">Month <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="month" name="month" required>
                                 @for($m = 1; $m <= 12; $m++)
@@ -82,7 +78,7 @@
                         </div>
 
                         <!-- Year (Required) -->
-                        <div class="col-md-2">
+                        <div class="{{ $showCompanyFilter ? 'col-md-2' : 'col-md-3' }}">
                             <label for="year" class="form-label small fw-semibold">Year <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="year" name="year" required>
                                 @for($y = date('Y'); $y >= 2020; $y--)

@@ -17,9 +17,9 @@ return new class extends Migration
             $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
             $table->unsignedTinyInteger('month');
             $table->unsignedSmallInteger('year');
-            $table->decimal('total_gross_salary', 12, 2)->default(0);
-            $table->decimal('total_deduction', 12, 2)->default(0);
-            $table->decimal('total_net_salary', 12, 2)->default(0);
+            $table->decimal('total_gross_salary')->nullable();
+            $table->decimal('total_deduction')->nullable();
+            $table->decimal('total_net_salary')->nullable();
             $table->string('status')->default('Generated'); // Draft, Generated, Locked, Paid
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();

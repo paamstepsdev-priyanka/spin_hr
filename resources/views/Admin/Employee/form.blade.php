@@ -6,30 +6,25 @@
     <div class="card-body p-4">
         <div class="row g-3">
             <!-- Company -->
+            @if($showCompanyFilter)
             <div class="col-md-4">
                 <label for="company_id" class="form-label fw-semibold">Company <span class="text-danger">*</span></label>
-                @if(isset($selectedCompanyId) && $selectedCompanyId !== null)
-                    @php
-                        $activeCompId = isset($employee) ? $employee->company_id : $selectedCompanyId;
-                        $compObj = $companies->firstWhere('id', $activeCompId);
-                    @endphp
-                    <input type="text" class="form-control bg-light" value="{{ $compObj ? $compObj->name : 'Current Company' }}" readonly>
-                    <input type="hidden" name="company_id" id="company_id" value="{{ $activeCompId }}">
-                @else
-                    <select class="form-select" id="company_id" name="company_id">
-                        <option value="">Select Company</option>
-                        @foreach($companies as $company)
-                            <option value="{{ $company->id }}" {{ (isset($employee) ? $employee->company_id : '') == $company->id ? 'selected' : '' }}>
-                                {{ $company->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                @endif
+                <select class="form-select" id="company_id" name="company_id">
+                    <option value="">Select Company</option>
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}" {{ (isset($employee) ? $employee->company_id : '') == $company->id ? 'selected' : '' }}>
+                            {{ $company->name }}
+                        </option>
+                    @endforeach
+                </select>
                 <div class="text-danger small mt-1" id="company_id-error"></div>
             </div>
+            @else
+                <input type="hidden" name="company_id" id="company_id" value="{{ isset($employee) ? $employee->company_id : $currentCompanyId }}">
+            @endif
 
             <!-- Branch -->
-            <div class="col-md-4">
+            <div class="{{ $showCompanyFilter ? 'col-md-4' : 'col-md-6' }}">
                 <label for="branch_id" class="form-label fw-semibold">Branch <span class="text-danger">*</span></label>
                 <select class="form-select" id="branch_id" name="branch_id">
                     <option value="">Select Branch</option>
@@ -45,7 +40,7 @@
             </div>
 
             <!-- Department -->
-            <div class="col-md-4">
+            <div class="{{ $showCompanyFilter ? 'col-md-4' : 'col-md-6' }}">
                 <label for="department_id" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
                 <select class="form-select" id="department_id" name="department_id">
                     <option value="">Select Department</option>

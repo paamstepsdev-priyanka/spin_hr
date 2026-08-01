@@ -28,27 +28,23 @@
             <div class="card-body p-3">
                 <form id="filter-attendance-form">
                     <div class="row g-3 align-items-end">
+                        @if($showCompanyFilter)
                         <!-- Company Dropdown -->
                         <div class="col-md-3">
                             <label for="company_id" class="form-label small fw-semibold">Company <span class="text-danger">*</span></label>
-                            @if(isset($selectedCompanyId) && $selectedCompanyId !== null)
-                                @php
-                                    $compObj = $companies->firstWhere('id', $selectedCompanyId);
-                                @endphp
-                                <input type="text" class="form-control form-control-sm bg-light" value="{{ $compObj ? $compObj->name : 'Current Company' }}" readonly>
-                                <input type="hidden" name="company_id" id="company_id" value="{{ $selectedCompanyId }}">
-                            @else
-                                <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
-                                    <option value="">Select Company</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                    @endforeach
-                                </select>
-                            @endif
+                            <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
+                                <option value="">Select Company</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
+                        @else
+                            <input type="hidden" name="company_id" id="company_id" value="{{ $currentCompanyId }}">
+                        @endif
 
                         <!-- Branch Dropdown -->
-                        <div class="col-md-3">
+                        <div class="{{ $showCompanyFilter ? 'col-md-3' : 'col-md-4' }}">
                             <label for="branch_id" class="form-label small fw-semibold">Branch <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="branch_id" name="branch_id" required>
                                 <option value="">Select Branch</option>
@@ -59,7 +55,7 @@
                         </div>
 
                         <!-- Month Select -->
-                        <div class="col-md-2">
+                        <div class="{{ $showCompanyFilter ? 'col-md-2' : 'col-md-3' }}">
                             <label for="month" class="form-label small fw-semibold">Month <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="month" name="month" required>
                                 @foreach($months as $num => $name)
@@ -69,7 +65,7 @@
                         </div>
 
                         <!-- Year Select -->
-                        <div class="col-md-2">
+                        <div class="{{ $showCompanyFilter ? 'col-md-2' : 'col-md-3' }}">
                             <label for="year" class="form-label small fw-semibold">Year <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="year" name="year" required>
                                 @for($y = date('Y') + 1; $y >= 2020; $y--)
@@ -171,140 +167,132 @@
         });
 
         // Load Employees button click handler
-        $('#btn-load-employees').on('click', function() {
-            if (checkFutureMonthValidation()) {
+        $('#btn-load-employees').on('click', function(e) {
+            e.preventDefault();
+            let btn = $(this);
+
+            if (btn.data('is-loading')) {
                 return false;
             }
 
-            let companyId = $('#company_id').val();
-            let branchId = $('#branch_id').val();
-            let month = $('#month').val();
-            let year = $('#year').val();
-
-            if (!companyId) {
-                alert('Please select company.');
-                $('#company_id').focus();
-                return;
-            }
-            if (!branchId) {
-                alert('Please select branch.');
-                $('#branch_id').focus();
-                return;
-            }
-            if (!month) {
-                alert('Please select month.');
-                $('#month').focus();
-                return;
-            }
-            if (!year) {
-                alert('Please select year.');
-                $('#year').focus();
-                return;
-            }
-
-            let btn = $(this);
-            let origHtml = btn.html();
-            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Loading...');
-
-            $.ajax({
-                url: "{{ route('attendance.loadEmployees') }}",
-                type: "POST",
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    company_id: companyId,
-                    branch_id: branchId,
-                    month: month,
-                    year: year
-                },
-                success: function(response) {
-                    btn.prop('disabled', false).html(origHtml);
-                    if (response.status) {
-                        $('#attendance-table-container').html(response.html);
-                        let alertType = response.is_edit ? 'alert-info' : 'alert-success';
-                        $('#alert-container').html('<div class="alert ' + alertType + ' alert-dismissible fade show" role="alert">' + response.message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
-                        $('html, body').animate({
-                            scrollTop: $("#attendance-table-container").offset().top - 70
-                        }, 300);
-                        checkFutureMonthValidation();
-                    }
-                },
-                error: function(xhr) {
-                    btn.prop('disabled', false).html(origHtml);
-                    let errorMsg = 'Failed to load employees.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert">' + errorMsg + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
+            try {
+                if (checkFutureMonthValidation()) {
+                    window.resetButtonLoader(btn);
+                    window.hideGlobalLoader();
+                    return false;
                 }
-            });
+
+                let companyId = $('#company_id').val();
+                let branchId = $('#branch_id').val();
+                let month = $('#month').val();
+                let year = $('#year').val();
+
+                if (!companyId) {
+                    alert('Please select company.');
+                    $('#company_id').focus();
+                    window.resetButtonLoader(btn);
+                    window.hideGlobalLoader();
+                    return;
+                }
+                if (!branchId) {
+                    alert('Please select branch.');
+                    $('#branch_id').focus();
+                    window.resetButtonLoader(btn);
+                    window.hideGlobalLoader();
+                    return;
+                }
+                if (!month) {
+                    alert('Please select month.');
+                    $('#month').focus();
+                    window.resetButtonLoader(btn);
+                    window.hideGlobalLoader();
+                    return;
+                }
+                if (!year) {
+                    alert('Please select year.');
+                    $('#year').focus();
+                    window.resetButtonLoader(btn);
+                    window.hideGlobalLoader();
+                    return;
+                }
+
+                window.showButtonLoader(btn, 'Loading...');
+
+                $.ajax({
+                    url: "{{ route('attendance.loadEmployees') }}",
+                    type: "POST",
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content'),
+                        company_id: companyId,
+                        branch_id: branchId,
+                        month: month,
+                        year: year
+                    },
+                    success: function(response) {
+                        if (response.status) {
+                            $('#attendance-table-container').html(response.html);
+                            let alertType = response.is_edit ? 'alert-info' : 'alert-success';
+                            $('#alert-container').html('<div class="alert ' + alertType + ' alert-dismissible fade show" role="alert">' + response.message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
+                            $('html, body').animate({
+                                scrollTop: $("#attendance-table-container").offset().top - 70
+                            }, 300);
+                            checkFutureMonthValidation();
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Failed to load employees.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
+                        $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert">' + errorMsg + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
+                    },
+                    complete: function() {
+                        window.resetButtonLoader(btn);
+                        window.hideGlobalLoader();
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+                window.resetButtonLoader(btn);
+                window.hideGlobalLoader();
+            }
         });
 
         // Delegate Save Attendance Form submit
         $(document).on('submit', '#attendance-save-form', function(e) {
             e.preventDefault();
+            let form = $(this);
+
             if (checkFutureMonthValidation()) {
                 return false;
             }
 
-            let form = $(this);
+            if (typeof window.validateAttendanceGrid === 'function') {
+                let isValid = window.validateAttendanceGrid();
+                if (!isValid) {
+                    let firstInvalidRow = $('.employee-row.table-danger').first();
+                    let firstInvalidInput = firstInvalidRow.find('.is-invalid').first();
 
-            let hasValidationError = false;
-            let validationErrorMessage = '';
+                    $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>Attendance cannot be saved. Please complete attendance for all highlighted employees before continuing.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
 
-            $('.employee-row').each(function() {
-                let row = $(this);
-                let empName = row.data('emp-name');
-                let totalDays = parseFloat(row.find('.total-days').val()) || 0;
-                let leaveTakenVal = row.find('.input-leave-taken').val();
-                let leaveNotDeductedVal = row.find('.input-leave-not-deducted').val();
-
-                let leaveTaken = (leaveTakenVal !== '' && !isNaN(leaveTakenVal)) ? parseFloat(leaveTakenVal) : 0;
-                let leaveNotDeducted = (leaveNotDeductedVal !== '' && !isNaN(leaveNotDeductedVal)) ? parseFloat(leaveNotDeductedVal) : 0;
-
-                if (leaveTaken < 0) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Taken for ' + empName + ' cannot be negative.';
-                    row.addClass('table-danger');
+                    if (firstInvalidRow.length) {
+                        $('html, body').animate({
+                            scrollTop: firstInvalidRow.offset().top - 100
+                        }, 300, function() {
+                            if (firstInvalidInput.length) {
+                                firstInvalidInput.focus();
+                            }
+                        });
+                    }
                     return false;
                 }
-                if (leaveTaken > totalDays) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Taken for ' + empName + ' (' + leaveTaken + ' days) cannot be greater than No. of Days in Month (' + totalDays + ').';
-                    row.addClass('table-danger');
-                    return false;
-                }
-                if (leaveNotDeducted < 0) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Not Deducted for ' + empName + ' cannot be negative.';
-                    row.addClass('table-danger');
-                    return false;
-                }
-                if (leaveNotDeducted > leaveTaken) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Not Deducted for ' + empName + ' (' + leaveNotDeducted + ' days) cannot be greater than Leave Taken (' + leaveTaken + ' days).';
-                    row.addClass('table-danger');
-                    return false;
-                }
-                row.removeClass('table-danger');
-            });
-
-            if (hasValidationError) {
-                $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert">' + validationErrorMessage + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
-                $('html, body').animate({ scrollTop: $('#alert-container').offset().top - 70 }, 300);
-                return false;
             }
-
-            let btn = form.find('#btn-save-attendance');
-            let origHtml = btn.html();
-
-            btn.prop('disabled', true).addClass('disabled').html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Saving...');
 
             $.ajax({
                 url: "{{ route('attendance.store') }}",
                 type: "POST",
                 data: form.serialize(),
                 success: function(response) {
-                    btn.prop('disabled', false).removeClass('disabled').html(origHtml);
                     if (response.status) {
                         if (response.redirect) {
                             window.location.href = response.redirect;
@@ -312,13 +300,15 @@
                     }
                 },
                 error: function(xhr) {
-                    btn.prop('disabled', false).removeClass('disabled').html(origHtml);
                     let errorMsg = 'Failed to save monthly attendance.';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMsg = xhr.responseJSON.message;
                     }
                     $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert">' + errorMsg + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
                     $('html, body').animate({ scrollTop: $('#alert-container').offset().top - 70 }, 300);
+                    if (typeof window.validateAttendanceGrid === 'function') {
+                        window.validateAttendanceGrid();
+                    }
                 }
             });
         });

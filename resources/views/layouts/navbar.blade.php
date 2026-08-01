@@ -70,7 +70,7 @@
             </a>
         </li>
 
-        <!-- Attendance Dropdown -->
+        {{-- <!-- Attendance Dropdown -->
         @php
             $isAttendanceActive = request()->routeIs('attendance.*') || request()->routeIs('attendance-report.*');
         @endphp
@@ -96,9 +96,9 @@
                     </a>
                 </li>
             </ul>
-        </li>
+        </li> --}}
 
-        <!-- Payroll Dropdown -->
+        {{-- <!-- Payroll Dropdown -->
         @php
             $isPayrollActive = request()->routeIs('payroll-processing.*') || request()->routeIs('payrolls.*');
         @endphp
@@ -118,7 +118,7 @@
                         <span>Salary Slip</span>
                     </a>
                 </li>
-            </ul>
+            </ul> --}}
         </li>
 
     </ul>

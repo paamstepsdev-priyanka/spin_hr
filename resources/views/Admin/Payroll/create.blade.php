@@ -32,27 +32,23 @@
                 <form id="form-load-payroll">
                     @csrf
                     <div class="row g-3 align-items-end">
+                        @if($showCompanyFilter)
                         <!-- Company Dropdown -->
                         <div class="col-md-3">
                             <label for="company_id" class="form-label small fw-semibold">Company <span class="text-danger">*</span></label>
-                            @if(isset($selectedCompanyId) && $selectedCompanyId !== null)
-                                @php
-                                    $compObj = $companies->firstWhere('id', $selectedCompanyId);
-                                @endphp
-                                <input type="text" class="form-control form-control-sm bg-light" value="{{ $compObj ? $compObj->name : 'Current Company' }}" readonly>
-                                <input type="hidden" name="company_id" id="company_id" value="{{ $selectedCompanyId }}">
-                            @else
-                                <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
-                                    <option value="">Select Company</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
-                                    @endforeach
-                                </select>
-                            @endif
+                            <select class="form-select form-select-sm select2" id="company_id" name="company_id" required>
+                                <option value="">Select Company</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
+                        @else
+                            <input type="hidden" name="company_id" id="company_id" value="{{ $currentCompanyId }}">
+                        @endif
 
                         <!-- Branch Dropdown -->
-                        <div class="col-md-3">
+                        <div class="{{ $showCompanyFilter ? 'col-md-3' : 'col-md-4' }}">
                             <label for="branch_id" class="form-label small fw-semibold">Branch <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="branch_id" name="branch_id" required>
                                 <option value="">Select Branch</option>
@@ -63,7 +59,7 @@
                         </div>
 
                         <!-- Month Select -->
-                        <div class="col-md-2">
+                        <div class="{{ $showCompanyFilter ? 'col-md-2' : 'col-md-3' }}">
                             <label for="month" class="form-label small fw-semibold">Month <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="month" name="month" required>
                                 <option value="">Select Month</option>
@@ -74,7 +70,7 @@
                         </div>
 
                         <!-- Year Select -->
-                        <div class="col-md-2">
+                        <div class="{{ $showCompanyFilter ? 'col-md-2' : 'col-md-3' }}">
                             <label for="year" class="form-label small fw-semibold">Year <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm select2" id="year" name="year" required>
                                 <option value="">Select Year</option>

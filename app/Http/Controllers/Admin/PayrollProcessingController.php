@@ -87,7 +87,7 @@ class PayrollProcessingController extends Controller
                 return "{$item->year}_{$item->month}";
             });
 
-        // Compute status for each of the 12 months
+        // Compute status for each of the 12 months based on sequential workflow logic
         $processedMonths = [];
         $attCompletedCount = 0;
         $payrollProcessedCount = 0;
@@ -106,50 +106,37 @@ class PayrollProcessingController extends Controller
             $attRec = $attendanceBatches->get($mKey);
             $payRec = $payrollBatches->get($mKey);
 
-            // Attendance Status
-            if ($attRec) {
-                $attStatus = 'Completed';
+            $hasAttendance = ($attRec !== null);
+            $hasPayroll = ($payRec !== null);
+            $hasPayslip = ($payRec !== null && $payRec->details->count() > 0);
+            $isComplete = ($hasAttendance && $hasPayroll && $hasPayslip);
+
+            // KPI Counts
+            if ($hasAttendance) {
                 $attCompletedCount++;
-            } elseif ($isFuture) {
-                $attStatus = 'Not Started';
-            } elseif ($isCurrent) {
-                $attStatus = 'In Progress';
-            } else {
-                $attStatus = 'Pending';
             }
-
-            // Payroll Status
-            if ($payRec) {
-                $payStatus = match ($payRec->status) {
-                    'Locked' => 'Locked',
-                    'Paid' => 'Paid',
-                    default => 'Generated'
-                };
+            if ($hasPayroll) {
                 $payrollProcessedCount++;
-            } elseif ($isFuture) {
-                $payStatus = 'Locked';
-            } else {
-                $payStatus = 'Pending';
             }
-
-            // Payslip Status
-            if ($payRec && $payRec->details->count() > 0) {
-                $payslipStatus = 'Generated';
+            if ($hasPayslip) {
                 $payslipGeneratedCount++;
-            } elseif ($isFuture) {
-                $payslipStatus = '-';
-            } else {
-                $payslipStatus = 'Pending';
             }
 
-            // In Progress calculation
-            if ($isCurrent) {
-                if ($attStatus === 'In Progress' || ($attStatus === 'Completed' && $payStatus === 'Pending')) {
-                    $inProgressCount++;
-                }
-            } elseif ($isPast && $attStatus === 'Completed' && $payStatus === 'Pending') {
+            // In Progress: current month or past active month where workflow is incomplete
+            if (($isCurrent || $isPast) && !$isComplete && !$isFuture) {
                 $inProgressCount++;
             }
+
+            // Text statuses
+            $attStatus = $hasAttendance ? 'Completed' : 'Pending';
+            $payStatus = $hasPayroll ? 'Processed' : 'Pending';
+            $payslipStatus = $hasPayslip ? 'Generated' : 'Pending';
+
+            // Action flags
+            $canGenerateAttendance = !$hasAttendance;
+            $canGeneratePayroll = ($hasAttendance && !$hasPayroll);
+            $canGeneratePayslip = ($hasPayroll && !$hasPayslip);
+            $canViewDetails = $isComplete;
 
             // Lock opening date for future months
             $openDateFormatted = Carbon::createFromDate($y, $m, 1)->format('j F Y');
@@ -162,9 +149,17 @@ class PayrollProcessingController extends Controller
                 'is_current' => $isCurrent,
                 'is_past' => $isPast,
                 'is_future' => $isFuture,
+                'has_attendance' => $hasAttendance,
+                'has_payroll' => $hasPayroll,
+                'has_payslip' => $hasPayslip,
+                'is_complete' => $isComplete,
                 'att_status' => $attStatus,
                 'pay_status' => $payStatus,
                 'payslip_status' => $payslipStatus,
+                'can_generate_attendance' => $canGenerateAttendance,
+                'can_generate_payroll' => $canGeneratePayroll,
+                'can_generate_payslip' => $canGeneratePayslip,
+                'can_view_details' => $canViewDetails,
                 'att_record' => $attRec,
                 'pay_record' => $payRec,
                 'open_date' => $openDateFormatted,

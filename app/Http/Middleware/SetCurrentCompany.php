@@ -23,10 +23,13 @@ class SetCurrentCompany
             $userCompanies = CompanyScope::companies();
             $isSuperAdmin = CompanyScope::isSuperAdmin();
 
+            $showCompanyFilter = CompanyScope::isAllCompanies();
+
             View::share('currentCompany', $currentCompany);
             View::share('currentCompanyId', $currentCompanyId);
             View::share('userCompanies', $userCompanies);
             View::share('isSuperAdmin', $isSuperAdmin);
+            View::share('showCompanyFilter', $showCompanyFilter);
         }
 
         return $next($request);

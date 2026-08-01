@@ -96,7 +96,7 @@
                                         </td>
                                         
                                         <td>
-                                            <input type="number" step="0.5" min="0" max="{{ $rec['total_days'] }}" class="form-control form-control-sm text-center input-leave-taken" name="details[{{ $index }}][leave_taken]" value="{{ (isset($rec['leave_taken']) && $rec['leave_taken'] !== null && (float)$rec['leave_taken'] > 0) ? ((float)$rec['leave_taken'] == (int)$rec['leave_taken'] ? (int)$rec['leave_taken'] : (float)$rec['leave_taken']) : '' }}">
+                                            <input type="number" step="0.5" min="0" max="{{ $rec['total_days'] }}" class="form-control form-control-sm text-center input-leave-taken" name="details[{{ $index }}][leave_taken]" value="{{ (isset($rec['leave_taken']) && $rec['leave_taken'] !== null && $rec['leave_taken'] !== '') ? ((float)$rec['leave_taken'] == (int)$rec['leave_taken'] ? (int)$rec['leave_taken'] : (float)$rec['leave_taken']) : '' }}" placeholder="Required">
                                         </td>
                                         
                                         <td class="table-info text-center">
@@ -104,7 +104,7 @@
                                         </td>
 
                                         <td>
-                                            <input type="number" step="0.5" min="0" class="form-control form-control-sm text-center input-leave-not-deducted" name="details[{{ $index }}][leave_not_deducted]" value="{{ (isset($rec['leave_not_deducted']) && $rec['leave_not_deducted'] !== null && (float)$rec['leave_not_deducted'] > 0) ? ((float)$rec['leave_not_deducted'] == (int)$rec['leave_not_deducted'] ? (int)$rec['leave_not_deducted'] : (float)$rec['leave_not_deducted']) : '' }}">
+                                            <input type="number" step="0.5" min="0" class="form-control form-control-sm text-center input-leave-not-deducted" name="details[{{ $index }}][leave_not_deducted]" value="{{ (isset($rec['leave_not_deducted']) && $rec['leave_not_deducted'] !== null && $rec['leave_not_deducted'] !== '') ? ((float)$rec['leave_not_deducted'] == (int)$rec['leave_not_deducted'] ? (int)$rec['leave_not_deducted'] : (float)$rec['leave_not_deducted']) : '' }}" placeholder="Required">
                                         </td>
 
                                         <td class="table-success text-center">
@@ -116,11 +116,12 @@
                         </table>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                        <div class="small text-muted">
-                            <span class="badge bg-light text-dark border me-2">Formulas:</span>
-                            <strong>Net Present</strong> = No. of Days in Month - Leave Taken | 
-                            <strong>No. of Days Payable</strong> = Net Present + Leave Not Deducted
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 pt-2 border-top gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-semibold text-body small me-1"><i class="bi bi-bar-chart-fill me-1"></i>Attendance Progress:</span>
+                            <span class="badge bg-success px-2 py-1 fw-semibold" id="badge-completed">Completed: 0 Employees</span>
+                            <span class="badge bg-danger px-2 py-1 fw-semibold" id="badge-pending">Pending: 0 Employees</span>
+                            <span class="badge bg-secondary px-2 py-1 fw-semibold" id="badge-total">Total: 0 Employees</span>
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold" id="btn-update-attendance">
                             <i class="bi bi-check-circle me-1"></i> Update Monthly Attendance
@@ -136,36 +137,84 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
     $(document).ready(function() {
-        function calculateRow(row) {
-            let totalDays = parseFloat(row.find('.total-days').val()) || 0;
-            let leaveTakenVal = row.find('.input-leave-taken').val();
-            let leaveNotDeductedVal = row.find('.input-leave-not-deducted').val();
+        function validateAndCalculateGrid() {
+            let totalRows = $('.employee-row').length;
+            let completedCount = 0;
+            let pendingCount = 0;
 
-            let leaveTaken = (leaveTakenVal !== '' && !isNaN(leaveTakenVal)) ? parseFloat(leaveTakenVal) : 0;
-            let leaveNotDeducted = (leaveNotDeductedVal !== '' && !isNaN(leaveNotDeductedVal)) ? parseFloat(leaveNotDeductedVal) : 0;
+            $('.employee-row').each(function() {
+                let row = $(this);
+                let totalDays = parseFloat(row.find('.total-days').val()) || 0;
+                let leaveTakenInput = row.find('.input-leave-taken');
+                let leaveNotDeductedInput = row.find('.input-leave-not-deducted');
 
-            let netPresent = Math.max(0, totalDays - leaveTaken);
-            let netPresentStr = (netPresent % 1 === 0) ? Math.round(netPresent) : parseFloat(netPresent.toFixed(2));
-            row.find('.input-net-present').val(netPresentStr);
+                let leaveTakenVal = leaveTakenInput.val() !== undefined && leaveTakenInput.val() !== null ? leaveTakenInput.val().toString().trim() : '';
+                let leaveNotDeductedVal = leaveNotDeductedInput.val() !== undefined && leaveNotDeductedInput.val() !== null ? leaveNotDeductedInput.val().toString().trim() : '';
 
-            let payableDays = netPresent + leaveNotDeducted;
-            let payableDaysStr = (payableDays % 1 === 0) ? Math.round(payableDays) : parseFloat(payableDays.toFixed(2));
-            row.find('.input-payable-days').val(payableDaysStr);
+                let isLeaveTakenBlank = (leaveTakenVal === '');
+                let isLeaveNotDeductedBlank = (leaveNotDeductedVal === '');
 
-            if (leaveTaken < 0 || leaveTaken > totalDays || leaveNotDeducted < 0 || leaveNotDeducted > leaveTaken) {
-                row.addClass('table-danger');
-            } else {
-                row.removeClass('table-danger');
+                let leaveTaken = !isLeaveTakenBlank && !isNaN(leaveTakenVal) ? parseFloat(leaveTakenVal) : 0;
+                let leaveNotDeducted = !isLeaveNotDeductedBlank && !isNaN(leaveNotDeductedVal) ? parseFloat(leaveNotDeductedVal) : 0;
+
+                // 1. Calculations
+                let netPresent = Math.max(0, totalDays - leaveTaken);
+                let netPresentStr = (netPresent % 1 === 0) ? Math.round(netPresent) : parseFloat(netPresent.toFixed(2));
+                row.find('.input-net-present').val(netPresentStr);
+
+                let payableDays = netPresent + leaveNotDeducted;
+                let payableDaysStr = (payableDays % 1 === 0) ? Math.round(payableDays) : parseFloat(payableDays.toFixed(2));
+                row.find('.input-payable-days').val(payableDaysStr);
+
+                // 2. Individual Input Validation
+                let leaveTakenInvalid = isLeaveTakenBlank || leaveTaken < 0 || leaveTaken > totalDays;
+                let leaveNotDeductedInvalid = isLeaveNotDeductedBlank || leaveNotDeducted < 0 || leaveNotDeducted > leaveTaken;
+
+                if (leaveTakenInvalid) {
+                    leaveTakenInput.addClass('is-invalid');
+                } else {
+                    leaveTakenInput.removeClass('is-invalid');
+                }
+
+                if (leaveNotDeductedInvalid) {
+                    leaveNotDeductedInput.addClass('is-invalid');
+                } else {
+                    leaveNotDeductedInput.removeClass('is-invalid');
+                }
+
+                // 3. Row Highlighting & Counter Tracking
+                if (leaveTakenInvalid || leaveNotDeductedInvalid) {
+                    row.addClass('table-danger');
+                    pendingCount++;
+                } else {
+                    row.removeClass('table-danger');
+                    completedCount++;
+                }
+            });
+
+            // 4. Update Summary Badges
+            $('#badge-completed').text('Completed: ' + completedCount + ' Employees');
+            $('#badge-pending').text('Pending: ' + pendingCount + ' Employees');
+            $('#badge-total').text('Total: ' + totalRows + ' Employees');
+
+            // 5. Button Protection
+            let updateBtn = $('#btn-update-attendance');
+            if (updateBtn.length) {
+                if (pendingCount > 0) {
+                    updateBtn.prop('disabled', true).addClass('disabled');
+                } else {
+                    updateBtn.prop('disabled', false).removeClass('disabled');
+                }
             }
+
+            return pendingCount === 0;
         }
 
-        $('.employee-row').each(function() {
-            calculateRow($(this));
-        });
+        validateAndCalculateGrid();
 
-        $(document).on('input change', '.input-leave-taken, .input-leave-not-deducted', function() {
-            let row = $(this).closest('.employee-row');
-            calculateRow(row);
+        $(document).off('input blur change', '.input-leave-taken, .input-leave-not-deducted')
+                   .on('input blur change', '.input-leave-taken, .input-leave-not-deducted', function() {
+            validateAndCalculateGrid();
         });
 
         // Form Submit Handler
@@ -173,63 +222,30 @@
             e.preventDefault();
             let form = $(this);
 
-            let hasValidationError = false;
-            let validationErrorMessage = '';
+            let isValid = validateAndCalculateGrid();
+            if (!isValid) {
+                let firstInvalidRow = $('.employee-row.table-danger').first();
+                let firstInvalidInput = firstInvalidRow.find('.is-invalid').first();
 
-            $('.employee-row').each(function() {
-                let row = $(this);
-                let empName = row.data('emp-name');
-                let totalDays = parseFloat(row.find('.total-days').val()) || 0;
-                let leaveTakenVal = row.find('.input-leave-taken').val();
-                let leaveNotDeductedVal = row.find('.input-leave-not-deducted').val();
+                $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>Attendance cannot be saved. Please complete attendance for all highlighted employees before continuing.<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
 
-                let leaveTaken = (leaveTakenVal !== '' && !isNaN(leaveTakenVal)) ? parseFloat(leaveTakenVal) : 0;
-                let leaveNotDeducted = (leaveNotDeductedVal !== '' && !isNaN(leaveNotDeductedVal)) ? parseFloat(leaveNotDeductedVal) : 0;
-
-                if (leaveTaken < 0) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Taken for ' + empName + ' cannot be negative.';
-                    row.addClass('table-danger');
-                    return false;
+                if (firstInvalidRow.length) {
+                    $('html, body').animate({
+                        scrollTop: firstInvalidRow.offset().top - 100
+                    }, 300, function() {
+                        if (firstInvalidInput.length) {
+                            firstInvalidInput.focus();
+                        }
+                    });
                 }
-                if (leaveTaken > totalDays) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Taken for ' + empName + ' (' + leaveTaken + ' days) cannot be greater than No. of Days in Month (' + totalDays + ').';
-                    row.addClass('table-danger');
-                    return false;
-                }
-                if (leaveNotDeducted < 0) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Not Deducted for ' + empName + ' cannot be negative.';
-                    row.addClass('table-danger');
-                    return false;
-                }
-                if (leaveNotDeducted > leaveTaken) {
-                    hasValidationError = true;
-                    validationErrorMessage = 'Leave Not Deducted for ' + empName + ' (' + leaveNotDeducted + ' days) cannot be greater than Leave Taken (' + leaveTaken + ' days).';
-                    row.addClass('table-danger');
-                    return false;
-                }
-                row.removeClass('table-danger');
-            });
-
-            if (hasValidationError) {
-                $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert">' + validationErrorMessage + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
-                $('html, body').animate({ scrollTop: $('#alert-container').offset().top - 70 }, 300);
                 return false;
             }
-
-            let btn = form.find('#btn-update-attendance');
-            let origHtml = btn.html();
-
-            btn.prop('disabled', true).addClass('disabled').html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Updating...');
 
             $.ajax({
                 url: "{{ route('attendance.update', $attendanceMonth->id) }}",
                 type: "POST",
                 data: form.serialize(),
                 success: function(response) {
-                    btn.prop('disabled', false).removeClass('disabled').html(origHtml);
                     if (response.status) {
                         if (response.redirect) {
                             window.location.href = response.redirect;
@@ -237,13 +253,13 @@
                     }
                 },
                 error: function(xhr) {
-                    btn.prop('disabled', false).removeClass('disabled').html(origHtml);
                     let errorMsg = 'Failed to update monthly attendance.';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMsg = xhr.responseJSON.message;
                     }
                     $('#alert-container').html('<div class="alert alert-danger alert-dismissible fade show" role="alert">' + errorMsg + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
                     $('html, body').animate({ scrollTop: $('#alert-container').offset().top - 70 }, 300);
+                    validateAndCalculateGrid();
                 }
             });
         });

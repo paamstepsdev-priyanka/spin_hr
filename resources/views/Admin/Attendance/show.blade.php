@@ -96,9 +96,8 @@
                                     <td class="text-muted text-start">{{ $detail->employee->branch->name ?? 'N/A' }}</td>
                                     <td class="text-center fw-bold bg-light">{{ $detail->total_days }}</td>
                                     <td class="text-center text-danger fw-semibold">{{ $detail->leave_taken !== null ? ((float)$detail->leave_taken == (int)$detail->leave_taken ? (int)$detail->leave_taken : (float)$detail->leave_taken) : '-' }}</td>
-                                    <td class="text-center table-info fw-bold text-primary">{{ (float)$detail->net_present == (int)$detail->net_present ? (int)$detail->net_present : (float)$detail->net_present }}</td>
-                                    <td class="text-center text-primary">{{ $detail->leave_not_deducted !== null ? ((float)$detail->leave_not_deducted == (int)$detail->leave_not_deducted ? (int)$detail->leave_not_deducted) : '-' }}</td>
-                                    <td class="text-center table-success fw-bold text-success">{{ (float)$detail->payable_days }}</td>
+                                    <td class="text-center text-primary">{{ $detail->leave_not_deducted !== null ? ((float)$detail->leave_not_deducted == (int)$detail->leave_not_deducted ? (int)$detail->leave_not_deducted : (float)$detail->leave_not_deducted) : '-' }}</td>
+                                    <td class="text-center table-success fw-bold text-success">{{ (float)$detail->payable_days == (int)$detail->payable_days ? (int)$detail->payable_days : (float)$detail->payable_days }}</td>
                                 </tr>
                             @empty
                                 <tr>

@@ -123,10 +123,20 @@ class AttendanceController extends Controller
     /**
      * Show the form for marking monthly attendance.
      */
-    public function create()
+    public function create(Request $request)
     {
-        $companies = CompanyScope::companies();
-        $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
+        $isSingleCompany = !CompanyScope::isAllCompanies();
+
+        if ($isSingleCompany) {
+            $selectedCompanyId = CompanyScope::id();
+            $request->merge(['company_id' => $selectedCompanyId]);
+            $companies = Company::where('id', $selectedCompanyId)->where('status', 'active')->get();
+            $branches = Branch::where('company_id', $selectedCompanyId)->where('status', 'active')->orderBy('name', 'asc')->get();
+        } else {
+            $companies = CompanyScope::companies();
+            $branches = Branch::where('status', 'active')->orderBy('name', 'asc')->get();
+            $selectedCompanyId = null;
+        }
 
         $months = [
             1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
@@ -134,10 +144,10 @@ class AttendanceController extends Controller
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
 
-        $currentMonth = (int) date('n');
-        $currentYear = (int) date('Y');
+        $currentMonth = (int) $request->query('month', date('n'));
+        $currentYear = (int) $request->query('year', date('Y'));
 
-        return view('Admin.Attendance.create', compact('companies', 'branches', 'months', 'currentMonth', 'currentYear'));
+        return view('Admin.Attendance.create', compact('companies', 'branches', 'months', 'currentMonth', 'currentYear', 'selectedCompanyId', 'isSingleCompany'));
     }
 
     /**
@@ -145,8 +155,15 @@ class AttendanceController extends Controller
      */
     public function loadEmployees(Request $request)
     {
-        if (CompanyScope::id() !== null) {
-            $request->merge(['company_id' => CompanyScope::id()]);
+        if (!CompanyScope::isAllCompanies()) {
+            $companyId = CompanyScope::id();
+            if ($request->has('company_id') && (int)$request->company_id !== (int)$companyId) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized cross-company access.'
+                ], 403);
+            }
+            $request->merge(['company_id' => $companyId]);
         }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
@@ -253,8 +270,15 @@ class AttendanceController extends Controller
      */
     public function store(Request $request)
     {
-        if (CompanyScope::id() !== null) {
-            $request->merge(['company_id' => CompanyScope::id()]);
+        if (!CompanyScope::isAllCompanies()) {
+            $companyId = CompanyScope::id();
+            if ($request->has('company_id') && (int)$request->company_id !== (int)$companyId) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized cross-company access.'
+                ], 403);
+            }
+            $request->merge(['company_id' => $companyId]);
         }
         $request->validate([
             'company_id' => 'required|exists:companies,id',
@@ -293,40 +317,44 @@ class AttendanceController extends Controller
             $rawLeaveTaken = $empData['leave_taken'] ?? null;
             $rawLeaveNotDeducted = $empData['leave_not_deducted'] ?? null;
 
-            $leaveTaken = ($rawLeaveTaken !== null && trim($rawLeaveTaken) !== '') ? (float)$rawLeaveTaken : null;
-            $leaveNotDeducted = ($rawLeaveNotDeducted !== null && trim($rawLeaveNotDeducted) !== '') ? (float)$rawLeaveNotDeducted : null;
-
-            $calcLeaveTaken = $leaveTaken ?? 0;
-            $calcLeaveNotDeducted = $leaveNotDeducted ?? 0;
-
             $employee = Employee::find($empData['employee_id']);
             $empName = $employee ? $employee->name : 'Employee #' . ($index + 1);
 
-            if ($leaveTaken !== null && $leaveTaken < 0) {
+            if ($rawLeaveTaken === null || trim((string)$rawLeaveTaken) === '' || $rawLeaveNotDeducted === null || trim((string)$rawLeaveNotDeducted) === '') {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Attendance cannot be saved. Please complete attendance for all employees before saving. (Missing entry for {$empName})",
+                ], 422);
+            }
+
+            $leaveTaken = (float)$rawLeaveTaken;
+            $leaveNotDeducted = (float)$rawLeaveNotDeducted;
+
+            if ($leaveTaken < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveTaken !== null && $leaveTaken > $totalDays) {
+            if ($leaveTaken > $totalDays) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} ({$leaveTaken} days) cannot be greater than No. of Days in Month ({$totalDays}).",
                 ], 422);
             }
 
-            if ($leaveNotDeducted !== null && $leaveNotDeducted < 0) {
+            if ($leaveNotDeducted < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Not Deducted for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveNotDeducted !== null && $leaveNotDeducted > $calcLeaveTaken) {
+            if ($leaveNotDeducted > $leaveTaken) {
                 return response()->json([
                     'status' => false,
-                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$calcLeaveTaken} days).",
+                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$leaveTaken} days).",
                 ], 422);
             }
         }
@@ -480,6 +508,9 @@ class AttendanceController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!CompanyScope::isAllCompanies()) {
+            $request->merge(['company_id' => CompanyScope::id()]);
+        }
         $attendanceMonth = AttendanceMonth::forCurrentCompany()->findOrFail($id);
 
         $request->validate([
@@ -498,40 +529,44 @@ class AttendanceController extends Controller
             $rawLeaveTaken = $empData['leave_taken'] ?? null;
             $rawLeaveNotDeducted = $empData['leave_not_deducted'] ?? null;
 
-            $leaveTaken = ($rawLeaveTaken !== null && trim($rawLeaveTaken) !== '') ? (float)$rawLeaveTaken : null;
-            $leaveNotDeducted = ($rawLeaveNotDeducted !== null && trim($rawLeaveNotDeducted) !== '') ? (float)$rawLeaveNotDeducted : null;
-
-            $calcLeaveTaken = $leaveTaken ?? 0;
-            $calcLeaveNotDeducted = $leaveNotDeducted ?? 0;
-
             $employee = Employee::find($empData['employee_id']);
             $empName = $employee ? $employee->name : 'Employee #' . ($index + 1);
 
-            if ($leaveTaken !== null && $leaveTaken < 0) {
+            if ($rawLeaveTaken === null || trim((string)$rawLeaveTaken) === '' || $rawLeaveNotDeducted === null || trim((string)$rawLeaveNotDeducted) === '') {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Attendance cannot be updated. Please complete attendance for all employees before updating. (Missing entry for {$empName})",
+                ], 422);
+            }
+
+            $leaveTaken = (float)$rawLeaveTaken;
+            $leaveNotDeducted = (float)$rawLeaveNotDeducted;
+
+            if ($leaveTaken < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveTaken !== null && $leaveTaken > $totalDays) {
+            if ($leaveTaken > $totalDays) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Taken for {$empName} ({$leaveTaken} days) cannot be greater than No. of Days in Month ({$totalDays}).",
                 ], 422);
             }
 
-            if ($leaveNotDeducted !== null && $leaveNotDeducted < 0) {
+            if ($leaveNotDeducted < 0) {
                 return response()->json([
                     'status' => false,
                     'message' => "Leave Not Deducted for {$empName} cannot be negative.",
                 ], 422);
             }
 
-            if ($leaveNotDeducted !== null && $leaveNotDeducted > $calcLeaveTaken) {
+            if ($leaveNotDeducted > $leaveTaken) {
                 return response()->json([
                     'status' => false,
-                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$calcLeaveTaken} days).",
+                    'message' => "Leave Not Deducted for {$empName} ({$leaveNotDeducted} days) cannot be greater than Leave Taken ({$leaveTaken} days).",
                 ], 422);
             }
         }

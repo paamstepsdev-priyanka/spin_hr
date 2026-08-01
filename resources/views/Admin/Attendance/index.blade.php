@@ -27,21 +27,23 @@
                 <!-- Filter Section -->
                 <form id="attendance-filter-form" class="bg-body-tertiary p-3 rounded mb-3 border border-light-subtle">
                     <div class="row g-3 align-items-end">
+                        @if($showCompanyFilter)
                         <!-- Company Dropdown -->
                         <div class="col-md-3">
                             <label for="filter_company_id" class="form-label small fw-semibold">Company</label>
-                            <select class="form-select form-select-sm select2" id="filter_company_id" name="company_id" {{ isset($selectedCompanyId) && $selectedCompanyId !== null ? 'disabled' : '' }}>
-                                @if(!isset($selectedCompanyId) || $selectedCompanyId === null)
-                                    <option value="">All Companies</option>
-                                @endif
+                            <select class="form-select form-select-sm select2" id="filter_company_id" name="company_id">
+                                <option value="">All Companies</option>
                                 @foreach($companies as $company)
-                                    <option value="{{ $company->id }}" {{ (isset($selectedCompanyId) && $selectedCompanyId == $company->id) ? 'selected' : '' }}>{{ $company->name }}</option>
+                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
                                 @endforeach
                             </select>
                         </div>
+                        @else
+                            <input type="hidden" id="filter_company_id" name="company_id" value="{{ $currentCompanyId }}">
+                        @endif
 
                         <!-- Branch Dropdown -->
-                        <div class="col-md-3">
+                        <div class="{{ $showCompanyFilter ? 'col-md-3' : 'col-md-4' }}">
                             <label for="filter_branch_id" class="form-label small fw-semibold">Branch</label>
                             <select class="form-select form-select-sm select2" id="filter_branch_id" name="branch_id">
                                 <option value="">All Branches</option>
@@ -52,7 +54,7 @@
                         </div>
 
                         <!-- Month Select -->
-                        <div class="col-md-3">
+                        <div class="{{ $showCompanyFilter ? 'col-md-3' : 'col-md-4' }}">
                             <label for="filter_month" class="form-label small fw-semibold">Month</label>
                             <select class="form-select form-select-sm select2" id="filter_month" name="month">
                                 <option value="">All Months</option>
@@ -63,7 +65,7 @@
                         </div>
 
                         <!-- Year Select -->
-                        <div class="col-md-3">
+                        <div class="{{ $showCompanyFilter ? 'col-md-3' : 'col-md-4' }}">
                             <label for="filter_year" class="form-label small fw-semibold">Year</label>
                             <select class="form-select form-select-sm select2" id="filter_year" name="year">
                                 <option value="">All Years</option>

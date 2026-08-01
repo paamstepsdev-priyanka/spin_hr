@@ -211,8 +211,39 @@
             }, 200);
         });
 
+        // Global Helper Functions for Button & Overlay Loaders
+        window.showButtonLoader = function(btn, loadingText) {
+            if (!btn || !btn.length) return;
+            let $btn = $(btn);
+            if ($btn.data('is-loading')) return;
+            $btn.data('is-loading', true);
+            if (!$btn.data('orig-html')) {
+                $btn.data('orig-html', $btn.html());
+            }
+            let text = loadingText || 'Processing...';
+            $btn.prop('disabled', true).addClass('disabled').html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ' + text);
+        };
+
+        window.resetButtonLoader = function(btn) {
+            if (!btn || !btn.length) return;
+            let $btn = $(btn);
+            let origHtml = $btn.data('orig-html');
+            if (origHtml) {
+                $btn.html(origHtml);
+            }
+            $btn.removeData('is-loading').removeData('orig-html');
+            $btn.prop('disabled', false).removeClass('disabled');
+        };
+
+        window.hideGlobalLoader = function() {
+            $('.loader, .spinner-overlay, #global-loader, #preloader, [data-loader]').hide();
+        };
+
         // Global small spinner loader for save/submit buttons across all modules
         document.addEventListener('submit', function(e) {
+            if (e.defaultPrevented) {
+                return;
+            }
             const form = e.target;
             const btn = form.querySelector('button[type="submit"], #btn-save');
             if (btn && !btn.getAttribute('data-is-loading')) {
