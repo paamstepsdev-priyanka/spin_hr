@@ -158,47 +158,76 @@
                             </div>
                             <div class="card-body p-3 small">
                                 <!-- Step 1: Attendance (Always shown) -->
-                                <div class="d-flex justify-content-between align-items-center py-1 {{ $m['has_attendance'] ? 'border-bottom border-light' : '' }}">
+                                @php
+                                    if (!$m['has_attendance']) {
+                                        $attUrl = route('attendance.create', ['month' => $m['month'], 'year' => $m['year']]);
+                                    } elseif ($m['attendance_locked']) {
+                                        $attUrl = $m['att_record'] ? route('attendance.show', $m['att_record']->id) : route('attendance.index', ['month' => $m['month'], 'year' => $m['year']]);
+                                    } else {
+                                        $attUrl = $m['att_record'] ? route('attendance.edit', $m['att_record']->id) : route('attendance.index', ['month' => $m['month'], 'year' => $m['year']]);
+                                    }
+                                @endphp
+                                <a href="{{ $attUrl }}" class="d-flex justify-content-between align-items-center py-1 text-decoration-none text-reset {{ $m['has_attendance'] ? 'border-bottom border-light' : '' }}" style="cursor: pointer;" title="Click to open Attendance">
                                     <span class="text-secondary"><i class="bi bi-people me-1 text-muted"></i>Attendance</span>
-                                    <span class="fw-semibold {{ $m['has_attendance'] ? 'text-success' : 'text-warning' }}">
-                                        {{ $m['att_status'] }}
-                                    </span>
-                                </div>
+                                    @if($m['attendance_locked'])
+                                        <span class="fw-semibold text-secondary"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+                                    @elseif($m['has_attendance'])
+                                        <span class="fw-semibold text-success">Completed</span>
+                                    @else
+                                        <span class="fw-semibold text-warning">Pending</span>
+                                    @endif
+                                </a>
 
                                 <!-- Step 2: Salary (Shown ONLY IF Attendance is Completed) -->
                                 @if($m['has_attendance'])
-                                    <div class="d-flex justify-content-between align-items-center py-1 {{ $m['has_payroll'] ? 'border-bottom border-light' : '' }}">
+                                    @php
+                                        if (!$m['has_payroll']) {
+                                            $payUrl = $m['attendance_locked'] ? route('payrolls.create', ['month' => $m['month'], 'year' => $m['year']]) : '#';
+                                        } else {
+                                            $payUrl = $m['pay_record'] ? route('payrolls.show', $m['pay_record']->id) : route('payroll-processing.show', [$m['year'], $m['month']]);
+                                        }
+                                    @endphp
+                                    <a href="{{ $payUrl }}" class="d-flex justify-content-between align-items-center py-1 text-decoration-none text-reset {{ $m['has_payroll'] ? 'border-bottom border-light' : '' }}" style="cursor: pointer;" title="{{ !$m['has_payroll'] && !$m['attendance_locked'] ? 'Complete attendance for all company branches before generating payroll.' : 'Click to open Salary / Payroll' }}">
                                         <span class="text-secondary"><i class="bi bi-wallet2 me-1 text-muted"></i>Salary</span>
                                         <span class="fw-semibold {{ $m['has_payroll'] ? 'text-success' : 'text-warning' }}">
                                             {{ $m['pay_status'] }}
                                         </span>
-                                    </div>
+                                    </a>
                                 @endif
 
                                 <!-- Step 3: Payslip (Shown ONLY IF Payroll is Generated) -->
                                 @if($m['has_payroll'])
-                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                    @php
+                                        $payslipUrl = route('payroll-processing.show', [$m['year'], $m['month']]);
+                                    @endphp
+                                    <a href="{{ $payslipUrl }}" class="d-flex justify-content-between align-items-center py-1 text-decoration-none text-reset" style="cursor: pointer;" title="Click to open Payslips">
                                         <span class="text-secondary"><i class="bi bi-file-earmark-text me-1 text-muted"></i>Payslip</span>
                                         <span class="fw-semibold {{ $m['has_payslip'] ? 'text-info' : 'text-warning' }}">
                                             {{ $m['payslip_status'] }}
                                         </span>
-                                    </div>
+                                    </a>
                                 @endif
                             </div>
                             <div class="card-footer bg-transparent border-0 p-3 pt-0">
-                                @if($m['can_generate_attendance'])
+                                @if(!$m['has_attendance'])
                                     <a href="{{ route('attendance.create', ['month' => $m['month'], 'year' => $m['year']]) }}" class="btn {{ $m['is_current'] ? 'btn-outline-warning' : 'btn-outline-primary' }} btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
                                         <i class="bi bi-plus-circle"></i> Generate Attendance
                                     </a>
-                                @elseif($m['can_generate_payroll'])
-                                    <a href="{{ route('payrolls.create', ['month' => $m['month'], 'year' => $m['year']]) }}" class="btn {{ $m['is_current'] ? 'btn-outline-warning' : 'btn-outline-primary' }} btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
-                                        <i class="bi bi-currency-rupee"></i> Generate Payroll
-                                    </a>
-                                @elseif($m['can_generate_payslip'])
+                                @elseif(!$m['has_payroll'])
+                                    @if($m['attendance_locked'])
+                                        <a href="{{ route('payrolls.create', ['month' => $m['month'], 'year' => $m['year']]) }}" class="btn {{ $m['is_current'] ? 'btn-outline-warning' : 'btn-outline-primary' }} btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
+                                            <i class="bi bi-currency-rupee"></i> Generate Payroll
+                                        </a>
+                                    @else
+                                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold opacity-75" disabled title="Complete attendance for all company branches before generating payroll.">
+                                            <i class="bi bi-currency-rupee"></i> Generate Payroll
+                                        </button>
+                                    @endif
+                                @elseif(!$m['has_payslip'])
                                     <a href="{{ route('payroll-processing.show', [$m['year'], $m['month']]) }}" class="btn btn-outline-info btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
                                         <i class="bi bi-file-earmark-plus"></i> Generate Payslip
                                     </a>
-                                @elseif($m['can_view_details'])
+                                @else
                                     <a href="{{ route('payroll-processing.show', [$m['year'], $m['month']]) }}" class="btn {{ $m['is_current'] ? 'btn-outline-warning' : 'btn-outline-primary' }} btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-1 fw-semibold">
                                         <i class="bi bi-eye"></i> View Details
                                     </a>

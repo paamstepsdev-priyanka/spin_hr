@@ -113,6 +113,59 @@
     </div>
 </div>
 
+<!-- Update Employee Status Modal -->
+<div class="modal fade" id="statusUpdateModal" tabindex="-1" aria-labelledby="statusUpdateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form id="status-update-form">
+                @csrf
+                <input type="hidden" id="status_employee_url">
+
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold" id="statusUpdateModalLabel">
+                        <i class="bi bi-person-gear me-2"></i>Update Employee Status
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3 text-body">Updating status for <strong id="status-employee-name" class="text-primary"></strong></p>
+                    
+                    <div id="status-modal-alert"></div>
+
+                    <!-- Status Selection -->
+                    <div class="mb-3">
+                        <label for="modal_employee_status" class="form-label fw-semibold text-body">Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="modal_employee_status" name="status" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+
+                    <!-- Inactive / Leave Details Container (Shown when Inactive is selected) -->
+                    <div id="inactive-details-container" style="display: none;">
+                        <div class="mb-3">
+                            <label for="modal_leave_date" class="form-label fw-semibold text-body">Effective Leave Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="modal_leave_date" name="leave_date">
+                            <div class="invalid-feedback" id="leave-date-error">Effective Leave Date is required when status is set to Inactive.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal_disable_reason" class="form-label fw-semibold text-body">Remark / Reason <span class="text-muted fw-normal">(Optional)</span></label>
+                            <textarea class="form-control" id="modal_disable_reason" name="disable_reason" rows="3" placeholder="Enter remark or reason..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body-tertiary border-0">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold" id="btn-save-status">
+                        Save Status
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
@@ -206,6 +259,109 @@
             });
 
             table.draw();
+        });
+
+        // Open Status Update Modal when clicking status badge
+        $(document).on('click', '.btn-status-modal', function(e) {
+            let $btn = $(this);
+            let url = $btn.attr('data-url') || $btn.data('url');
+            let name = $btn.attr('data-name') || $btn.data('name');
+            let currentStatus = $btn.attr('data-status') || $btn.data('status') || 'active';
+            let leaveDate = $btn.attr('data-leave-date') || $btn.data('leave-date') || '';
+            let reason = $btn.attr('data-reason') || $btn.data('reason') || '';
+
+            $('#status_employee_url').val(url);
+            $('#status-employee-name').text(name);
+            $('#modal_employee_status').val(currentStatus);
+            $('#modal_leave_date').val(leaveDate).removeClass('is-invalid');
+            $('#modal_disable_reason').val(reason);
+            $('#status-modal-alert').html('');
+
+            toggleLeaveFields(currentStatus);
+
+            let modalEl = document.getElementById('statusUpdateModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                let modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modalInstance.show();
+            } else if ($.fn.modal) {
+                $('#statusUpdateModal').modal('show');
+            }
+        });
+
+        // Toggle Leave Date & Remark fields on status selection change
+        $('#modal_employee_status').on('change', function() {
+            toggleLeaveFields($(this).val());
+        });
+
+        function toggleLeaveFields(statusVal) {
+            if (statusVal === 'inactive' || statusVal === 'disabled') {
+                $('#inactive-details-container').slideDown(200);
+                $('#modal_leave_date').prop('required', true);
+            } else {
+                $('#inactive-details-container').slideUp(200);
+                $('#modal_leave_date').prop('required', false).removeClass('is-invalid');
+            }
+        }
+
+        // Submit Status Update Form via AJAX
+        $('#status-update-form').on('submit', function(e) {
+            e.preventDefault();
+
+            let statusVal = $('#modal_employee_status').val();
+            let leaveDate = $('#modal_leave_date').val().trim();
+
+            if ((statusVal === 'inactive' || statusVal === 'disabled') && !leaveDate) {
+                $('#modal_leave_date').addClass('is-invalid');
+                return false;
+            } else {
+                $('#modal_leave_date').removeClass('is-invalid');
+            }
+
+            let url = $('#status_employee_url').val();
+            let disableReason = $('#modal_disable_reason').val().trim();
+            let $btn = $('#btn-save-status');
+
+            window.showButtonLoader($btn, 'Saving...');
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    status: statusVal,
+                    leave_date: leaveDate,
+                    disable_reason: disableReason
+                },
+                success: function(response) {
+                    window.resetButtonLoader($btn);
+                    if (response.status) {
+                        let modalEl = document.getElementById('statusUpdateModal');
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                            let modalInstance = bootstrap.Modal.getInstance(modalEl);
+                            if (modalInstance) modalInstance.hide();
+                        } else if ($.fn.modal) {
+                            $('#statusUpdateModal').modal('hide');
+                        }
+                        
+                        $('#alert-container').html('<div class="alert alert-success alert-dismissible fade show" role="alert"><i class="bi bi-check-circle-fill me-2"></i>' + response.message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
+                        table.ajax.reload(null, false);
+                    } else {
+                        $('#status-modal-alert').html('<div class="alert alert-danger" role="alert">' + (response.message || 'Failed to update status.') + '</div>');
+                    }
+                },
+                error: function(xhr) {
+                    window.resetButtonLoader($btn);
+                    let errMessage = 'An error occurred while updating status.';
+                    if (xhr.responseJSON && xhr.responseJSON.errors && xhr.responseJSON.errors.leave_date) {
+                        errMessage = xhr.responseJSON.errors.leave_date[0];
+                        $('#modal_leave_date').addClass('is-invalid');
+                        $('#leave-date-error').text(errMessage);
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errMessage = xhr.responseJSON.message;
+                    }
+                    $('#status-modal-alert').html('<div class="alert alert-danger mb-3" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>' + errMessage + '</div>');
+                }
+            });
         });
 
         // Handle AJAX Delete

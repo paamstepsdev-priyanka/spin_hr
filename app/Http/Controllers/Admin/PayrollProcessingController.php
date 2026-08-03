@@ -8,9 +8,11 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\PayrollDetail;
+use App\Services\AttendanceLockService;
 use App\Services\CompanyScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PayrollProcessingController extends Controller
 {
@@ -106,13 +108,16 @@ class PayrollProcessingController extends Controller
             $attRec = $attendanceBatches->get($mKey);
             $payRec = $payrollBatches->get($mKey);
 
+            $companyId = CompanyScope::id() ?? ($attRec ? $attRec->company_id : null);
+            $attendanceLocked = AttendanceLockService::isLocked($companyId, $y, $m);
+
             $hasAttendance = ($attRec !== null);
             $hasPayroll = ($payRec !== null);
-            $hasPayslip = ($payRec !== null && $payRec->details->count() > 0);
-            $isComplete = ($hasAttendance && $hasPayroll && $hasPayslip);
+            $hasPayslip = ($payRec !== null && $payRec->details->where('status', 'Generated')->count() > 0);
+            $isComplete = ($attendanceLocked && $hasPayroll && $hasPayslip);
 
             // KPI Counts
-            if ($hasAttendance) {
+            if ($attendanceLocked || $hasAttendance) {
                 $attCompletedCount++;
             }
             if ($hasPayroll) {
@@ -127,16 +132,16 @@ class PayrollProcessingController extends Controller
                 $inProgressCount++;
             }
 
-            // Text statuses
-            $attStatus = $hasAttendance ? 'Completed' : 'Pending';
+            // Text statuses (Completed if attendance exists, otherwise Pending)
+            $attStatus = ($attendanceLocked || $hasAttendance) ? 'Completed' : 'Pending';
             $payStatus = $hasPayroll ? 'Processed' : 'Pending';
             $payslipStatus = $hasPayslip ? 'Generated' : 'Pending';
 
             // Action flags
             $canGenerateAttendance = !$hasAttendance;
-            $canGeneratePayroll = ($hasAttendance && !$hasPayroll);
+            $canGeneratePayroll = ($attendanceLocked && !$hasPayroll);
             $canGeneratePayslip = ($hasPayroll && !$hasPayslip);
-            $canViewDetails = $isComplete;
+            $canViewDetails = ($hasAttendance || $hasPayroll || $attendanceLocked);
 
             // Lock opening date for future months
             $openDateFormatted = Carbon::createFromDate($y, $m, 1)->format('j F Y');
@@ -150,6 +155,7 @@ class PayrollProcessingController extends Controller
                 'is_past' => $isPast,
                 'is_future' => $isFuture,
                 'has_attendance' => $hasAttendance,
+                'attendance_locked' => $attendanceLocked,
                 'has_payroll' => $hasPayroll,
                 'has_payslip' => $hasPayslip,
                 'is_complete' => $isComplete,
@@ -216,10 +222,15 @@ class PayrollProcessingController extends Controller
             ->orderBy('employee_code', 'asc')
             ->get();
 
+        $companyId = CompanyScope::id() ?? ($attendanceMonth ? $attendanceMonth->company_id : null);
+        $attendanceLocked = AttendanceLockService::isLocked($companyId, $year, $month);
+        $hasPayroll = ($payroll !== null);
+        $hasPayslip = ($payroll !== null && $payroll->details->where('status', 'Generated')->count() > 0);
+
         // Attendance Summary Aggregates
         $attDetails = $attendanceMonth ? $attendanceMonth->details : collect();
         $attSummary = [
-            'status' => $attendanceMonth ? 'Completed' : 'Pending',
+            'status' => ($attendanceLocked || $attendanceMonth) ? 'Completed' : 'Pending',
             'generated_date' => $attendanceMonth && $attendanceMonth->created_at ? $attendanceMonth->created_at->format('d/m/Y h:i A') : 'N/A',
             'generated_by' => $attendanceMonth && $attendanceMonth->creator ? $attendanceMonth->creator->name : 'N/A',
             'total_employees' => $attDetails->count(),
@@ -245,7 +256,7 @@ class PayrollProcessingController extends Controller
 
         // Salary Slip Summary Aggregates
         $totalEmployeesCount = $employees->count();
-        $slipsGeneratedCount = $payDetails->count();
+        $slipsGeneratedCount = $hasPayslip ? $payDetails->count() : 0;
         $slipsPendingCount = max(0, $totalEmployeesCount - $slipsGeneratedCount);
 
         $slipSummary = [
@@ -261,6 +272,7 @@ class PayrollProcessingController extends Controller
         foreach ($employees as $emp) {
             $attItem = $attDetailsKeyed->get($emp->id);
             $payItem = $payDetails->get($emp->id);
+            $isSlipGenerated = ($payItem && $payItem->status === 'Generated');
 
             $employeeRows[] = [
                 'employee_id' => $emp->id,
@@ -270,10 +282,12 @@ class PayrollProcessingController extends Controller
                 'attendance_status' => $attItem ? 'Completed' : 'Pending',
                 'payable_days' => $attItem ? $attItem->payable_days : '-',
                 'payroll_status' => $payItem ? ($payItem->status ?? 'Generated') : 'Pending',
-                'salary_slip_status' => $payItem ? 'Generated' : 'Pending',
+                'salary_slip_status' => $isSlipGenerated ? 'Generated' : 'Pending',
                 'payroll_detail_id' => $payItem ? $payItem->id : null,
             ];
         }
+
+        $editAttendanceUrl = $attendanceMonth ? route('attendance.edit', $attendanceMonth->id) : route('attendance.index', ['month' => $month, 'year' => $year]);
 
         return view('Admin.PayrollProcessing.show', compact(
             'year',
@@ -281,10 +295,46 @@ class PayrollProcessingController extends Controller
             'monthName',
             'attendanceMonth',
             'payroll',
+            'attendanceLocked',
+            'hasPayroll',
+            'hasPayslip',
+            'editAttendanceUrl',
             'attSummary',
             'paySummary',
             'slipSummary',
             'employeeRows'
         ));
     }
+
+    /**
+     * Generate or regenerate salary slips for a specific year and month.
+     */
+    public function generatePayslips(Request $request, $year, $month)
+    {
+        $year = (int) $year;
+        $month = (int) $month;
+
+        $payroll = Payroll::forCurrentCompany()
+            ->where('year', $year)
+            ->where('month', $month)
+            ->first();
+
+        if (!$payroll) {
+            return redirect()->back()->with('error', 'Payroll record not found. Please generate payroll first.');
+        }
+
+        // Update all payroll details status to Generated
+        PayrollDetail::where('payroll_id', $payroll->id)->update([
+            'status' => 'Generated',
+            'updated_by' => auth()->id(),
+        ]);
+
+        $payroll->status = 'Generated';
+        $payroll->save();
+
+        Log::info("Salary Slips Regenerated: Company ID {$payroll->company_id}, Branch ID {$payroll->branch_id}, Month {$month}, Year {$year} by User " . auth()->id());
+
+        return redirect()->route('payroll-processing.show', [$year, $month])->with('success', 'Salary slips generated successfully.');
+    }
 }
+

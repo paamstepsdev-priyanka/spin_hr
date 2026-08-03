@@ -177,14 +177,13 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label for="effective_from" class="form-label fw-semibold small">Start Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control form-control-sm" id="effective_from" name="effective_from" value="{{ old('effective_from', isset($salary->effective_from) ? date('Y-m-d', strtotime($salary->effective_from)) : date('Y-m-d')) }}">
+                        <input type="date" class="form-control form-control-sm" id="effective_from" name="effective_from" value="{{ old('effective_from', isset($salary->effective_from) ? date('Y-m-d', strtotime($salary->effective_from)) : '') }}" required>
                         <div class="text-danger small" id="effective_from-error"></div>
                     </div>
 
                     <div class="col-md-4">
-                        <label for="effective_to" class="form-label fw-semibold small">End Date</label>
-                        <input type="date" class="form-control form-control-sm" id="effective_to" name="effective_to" value="{{ old('effective_to', isset($salary->effective_to) ? date('Y-m-d', strtotime($salary->effective_to)) : '') }}">
-                        <div class="text-muted small">Leave empty if currently active</div>
+                        <label for="effective_to" class="form-label fw-semibold small">End Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control form-control-sm" id="effective_to" name="effective_to" value="{{ old('effective_to', isset($salary->effective_to) ? date('Y-m-d', strtotime($salary->effective_to)) : '') }}" required>
                         <div class="text-danger small" id="effective_to-error"></div>
                     </div>
 

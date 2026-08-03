@@ -63,12 +63,14 @@
             </ul>
         </li>
 
-         <li class="my-1">
+        @if(\App\Services\CompanyScope::id() !== null)
+        <li class="my-1">
             <a href="{{ route('payroll-processing.index') }}" class="{{ request()->routeIs('payroll-processing.*') ? 'active' : '' }}">
                 <i class="bi bi-kanban"></i>
                 <span>Attendance & Payroll</span>
             </a>
         </li>
+        @endif
 
         {{-- <!-- Attendance Dropdown -->
         @php

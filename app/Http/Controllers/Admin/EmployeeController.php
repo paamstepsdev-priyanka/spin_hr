@@ -82,8 +82,31 @@ class EmployeeController extends Controller
                             </button>';
                 })
                 ->editColumn('status', function ($row) {
-                    $badgeClass = strtolower($row->status) === 'active' ? 'bg-warning text-dark' : 'bg-danger';
-                    return '<span class="badge ' . $badgeClass . ' px-2 py-1">' . ucfirst($row->status) . '</span>';
+                    $status = strtolower($row->status);
+                    $badgeClass = $status === 'active' ? 'bg-warning text-dark' : 'bg-danger text-white';
+                    $statusLabel = ucfirst($status);
+                    $leaveDateStr = '';
+                    if (!empty($row->leave_date)) {
+                        $leaveDateStr = ($row->leave_date instanceof \DateTimeInterface) 
+                            ? $row->leave_date->format('Y-m-d') 
+                            : date('Y-m-d', strtotime($row->leave_date));
+                    }
+                    $reasonStr = e($row->disable_reason ?? '');
+
+                    return '<button type="button" 
+                                class="badge ' . $badgeClass . ' border-0 px-2 py-1 btn-status-modal" 
+                                style="cursor: pointer;"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#statusUpdateModal"
+                                data-id="' . $row->id . '" 
+                                data-name="' . e($row->name) . '" 
+                                data-status="' . $status . '" 
+                                data-leave-date="' . $leaveDateStr . '" 
+                                data-reason="' . $reasonStr . '" 
+                                data-url="' . route('employees.update-status', $row->id) . '" 
+                                title="Click to change status">
+                                ' . $statusLabel . '
+                            </button>';
                 })
                 ->editColumn('email', function ($row) {
                     return '<a href="mailto:' . e($row->email) . '" class="text-decoration-none text-body">' . e($row->email) . '</a>';
@@ -507,6 +530,77 @@ class EmployeeController extends Controller
             }
 
             return redirect()->back()->with('error', 'Failed to delete employee.');
+        }
+    }
+
+    /**
+     * Update employee status (Active / Inactive) with leave date and remark.
+     */
+    public function updateStatus(Request $request, Employee $employee)
+    {
+        if (CompanyScope::id() !== null && (int)$employee->company_id !== (int)CompanyScope::id()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized access to employee record.'
+            ], 403);
+        }
+
+        $request->validate([
+            'status' => 'required|in:active,inactive,disabled',
+            'leave_date' => 'required_if:status,inactive,disabled|nullable|date',
+            'disable_reason' => 'nullable|string|max:1000',
+        ], [
+            'leave_date.required_if' => 'Effective Leave Date is required when status is set to Inactive.',
+            'leave_date.date' => 'Enter a valid date for Effective Leave Date.',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $newStatus = strtolower($request->status);
+
+            if ($newStatus === 'inactive' || $newStatus === 'disabled') {
+                $employee->status = 'inactive';
+                $employee->leave_date = $request->leave_date;
+                $employee->disable_reason = $request->disable_reason;
+                $employee->disabled_by = auth()->id();
+                $employee->disabled_at = now();
+
+                // Deactivate user login account
+                if ($employee->user_id) {
+                    User::where('id', $employee->user_id)->update(['status' => 'inactive']);
+                } elseif ($employee->email) {
+                    User::where('email', $employee->email)->update(['status' => 'inactive']);
+                }
+            } else {
+                $employee->status = 'active';
+                $employee->leave_date = null;
+                $employee->disable_reason = null;
+                $employee->disabled_by = null;
+                $employee->disabled_at = null;
+
+                // Activate user login account
+                if ($employee->user_id) {
+                    User::where('id', $employee->user_id)->update(['status' => 'active']);
+                } elseif ($employee->email) {
+                    User::where('email', $employee->email)->update(['status' => 'active']);
+                }
+            }
+
+            $employee->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Employee status updated to ' . ucfirst($employee->status) . ' successfully.'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to update status: ' . $e->getMessage()
+            ], 500);
         }
     }
 

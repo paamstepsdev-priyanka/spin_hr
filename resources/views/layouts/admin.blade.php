@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -15,6 +15,7 @@
     <link href="{{ asset('backend/css/style.css') }}" rel="stylesheet">
     <!-- Custom & Vendor icons styles -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link href="{{ asset('backend/css/custom.css') }}" rel="stylesheet">
     
     <script src="{{ asset('backend/js/config.js') }}"></script>
@@ -120,13 +121,6 @@
                         </div>
                     </li>
                 </ul>
-            </div>
-            <div class="container-fluid px-4">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb my-0">
-                        <li class="breadcrumb-item active"><span>@yield('title', 'Dashboard')</span></li>
-                    </ol>
-                </nav>
             </div>
         </header>
 
@@ -253,6 +247,19 @@
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + btn.innerHTML;
                 btn.disabled = true;
                 btn.classList.add('disabled');
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof flatpickr !== 'undefined') {
+                flatpickr("input[type=date]", {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "d/m/Y",
+                    allowInput: true
+                });
             }
         });
     </script>

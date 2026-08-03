@@ -11,10 +11,12 @@ use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\Payroll;
 use App\Models\PayrollDetail;
+use App\Services\AttendanceLockService;
 use App\Services\CompanyScope;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 
 class PayrollController extends Controller
@@ -132,29 +134,30 @@ class PayrollController extends Controller
      */
     public function create(Request $request)
     {
-        $companies = CompanyScope::companies();
-        $branches = Branch::forCurrentCompany()->where('status', 'active')->orderBy('name', 'asc')->get();
+        $companyId = CompanyScope::id();
+        $company = $companyId ? Company::find($companyId) : Company::where('status', 'active')->first();
+        if ($company && !$companyId) {
+            $companyId = $company->id;
+        }
+
+        $branches = Branch::where('company_id', $companyId)
+            ->where('status', 'active')
+            ->orderBy('name', 'asc')
+            ->get();
+
         $months = [
-            1 => 'January',
-            2 => 'February',
-            3 => 'March',
-            4 => 'April',
-            5 => 'May',
-            6 => 'June',
-            7 => 'July',
-            8 => 'August',
-            9 => 'September',
-            10 => 'October',
-            11 => 'November',
-            12 => 'December'
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
 
         $currentMonth = (int) $request->query('month', date('n'));
         $currentYear = (int) $request->query('year', date('Y'));
-        $selectedCompanyId = $request->query('company_id') ?? CompanyScope::id();
-        $selectedBranchId = $request->query('branch_id');
+        $selectedBranchId = $request->query('branch_id', null);
 
-        return view('Admin.Payroll.create', compact('companies', 'branches', 'months', 'currentMonth', 'currentYear', 'selectedCompanyId', 'selectedBranchId'));
+        $monthName = $months[$currentMonth] ?? 'January';
+
+        return view('Admin.Payroll.create', compact('company', 'companyId', 'branches', 'months', 'currentMonth', 'currentYear', 'monthName', 'selectedBranchId'));
     }
 
     /**
@@ -162,9 +165,18 @@ class PayrollController extends Controller
      */
     public function loadEmployees(Request $request)
     {
-        if (CompanyScope::id() !== null) {
-            $request->merge(['company_id' => CompanyScope::id()]);
+        $scopedCompanyId = CompanyScope::id();
+        if ($scopedCompanyId) {
+            $companyId = $scopedCompanyId;
+            if ($request->filled('company_id') && (int)$request->company_id !== (int)$companyId) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized cross-company access.'
+                ], 403);
+            }
+            $request->merge(['company_id' => $companyId]);
         }
+
         $request->validate([
             'company_id' => 'required|exists:companies,id',
             'branch_id' => 'required|exists:branches,id',
@@ -181,6 +193,27 @@ class PayrollController extends Controller
         $branchId = (int) $request->branch_id;
         $month = (int) $request->month;
         $year = (int) $request->year;
+
+        // Verify branch belongs to current company
+        $branchValid = Branch::where('id', $branchId)
+            ->where('company_id', $companyId)
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$branchValid) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Selected branch does not belong to the active company.',
+            ], 403);
+        }
+
+        // Check 0: Check if attendance is locked for all active company branches
+        if (!AttendanceLockService::isLocked($companyId, $year, $month)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Payroll cannot be generated until attendance is completed for all active branches of the selected company.',
+            ], 422);
+        }
 
         // Check 1: Check if Payroll already generated for this Company, Branch, Month, Year
         $existingPayroll = Payroll::where('company_id', $companyId)
@@ -357,6 +390,14 @@ class PayrollController extends Controller
         $branchId = (int) $request->branch_id;
         $month = (int) $request->month;
         $year = (int) $request->year;
+
+        // Check 0: Check if attendance is locked for all active company branches
+        if (!AttendanceLockService::isLocked($companyId, $year, $month)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Payroll cannot be generated until attendance is completed for all active branches of the selected company.',
+            ], 422);
+        }
 
         // Check duplicate
         $existingPayroll = Payroll::where('company_id', $companyId)
@@ -537,7 +578,7 @@ class PayrollController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Payroll generated successfully.',
-                'redirect' => route('payrolls.index'),
+                'redirect' => route('payroll-processing.index'),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -563,6 +604,183 @@ class PayrollController extends Controller
         $monthName = Carbon::createFromDate($payroll->year, $payroll->month, 1)->format('F');
 
         return view('Admin.Payroll.show', compact('payroll', 'monthName'));
+    }
+
+    /**
+     * Show form to edit specified payroll batch.
+     */
+    public function edit($id)
+    {
+        $payroll = Payroll::forCurrentCompany()->with([
+            'company',
+            'branch',
+            'creator',
+            'details.employee.department'
+        ])->findOrFail($id);
+
+        $monthName = Carbon::createFromDate($payroll->year, $payroll->month, 1)->format('F');
+
+        return view('Admin.Payroll.edit', compact('payroll', 'monthName'));
+    }
+
+    /**
+     * Update specified payroll batch, recalculate totals, and set payslips to Pending.
+     */
+    public function update(Request $request, $id)
+    {
+        $payroll = Payroll::forCurrentCompany()->findOrFail($id);
+
+        $companyId = (int) $payroll->company_id;
+        $branchId = (int) $payroll->branch_id;
+        $month = (int) $payroll->month;
+        $year = (int) $payroll->year;
+
+        // Fetch Attendance
+        $attendanceMonth = AttendanceMonth::where('company_id', $companyId)
+            ->where('branch_id', $branchId)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->first();
+
+        if (!$attendanceMonth) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Attendance record not found for this payroll batch.',
+            ], 422);
+        }
+
+        $attendanceDetails = AttendanceMonthDetail::where('attendance_month_id', $attendanceMonth->id)
+            ->get()
+            ->keyBy('employee_id');
+
+        $firstDate = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
+        $lastDate = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
+
+        $employees = Employee::with(['salaries' => function ($q) use ($firstDate, $lastDate) {
+            $q->where('status', 'active')
+                ->where('effective_from', '<=', $lastDate)
+                ->where(function ($sub) use ($firstDate) {
+                    $sub->whereNull('effective_to')
+                        ->orWhere('effective_to', '>=', $firstDate);
+                })
+                ->orderBy('effective_from', 'desc')
+                ->orderBy('id', 'desc');
+        }])
+            ->where('company_id', $companyId)
+            ->where('branch_id', $branchId)
+            ->where('status', 'active')
+            ->get();
+
+        DB::beginTransaction();
+
+        try {
+            // Delete old salary slips / details snapshot
+            $payroll->details()->delete();
+
+            $batchGross = 0;
+            $batchDeduction = 0;
+            $batchNet = 0;
+
+            foreach ($employees as $emp) {
+                $salaryConfig = $emp->salaries->first();
+                $attDetail = $attendanceDetails->get($emp->id);
+
+                if (!$salaryConfig || !$attDetail) {
+                    continue;
+                }
+
+                $basicSalary = (float) $salaryConfig->basic_salary;
+                $hra = (float) $salaryConfig->hra;
+                $conveyanceAllowance = (float) $salaryConfig->conveyance_allowance;
+                $medicalAllowance = (float) $salaryConfig->medical_allowance;
+                $specialAllowance = (float) $salaryConfig->special_allowance;
+                $otherAllowance = (float) $salaryConfig->other_allowance;
+                $variableAllowance = (float) $salaryConfig->variable_allowance;
+                $grossSalary = (float) $salaryConfig->gross_salary;
+
+                $totalDays = (float) $attDetail->total_days;
+                $leaveTaken = (float) $attDetail->leave_taken;
+                $netPresent = (float) $attDetail->net_present;
+                $leaveNotDeducted = (float) $attDetail->leave_not_deducted;
+                $payableDays = (float) $attDetail->payable_days;
+
+                $perDaySalary = ($totalDays > 0) ? round($grossSalary / $totalDays, 2) : 0;
+                $earnedSalary = round($perDaySalary * $payableDays, 2);
+
+                $employeePf = (float) $salaryConfig->employee_pf;
+                $esi = (float) $salaryConfig->esi;
+                $professionalTax = (float) $salaryConfig->professional_tax;
+                $tds = (float) $salaryConfig->tds;
+                $otherDeduction = (float) $salaryConfig->other_deduction;
+                $totalDeduction = round($employeePf + $esi + $professionalTax + $tds + $otherDeduction, 2);
+
+                $netSalary = round($earnedSalary - $totalDeduction, 2);
+
+                $detail = new PayrollDetail();
+                $detail->payroll_id = $payroll->id;
+                $detail->employee_id = $emp->id;
+
+                $detail->basic_salary = $basicSalary;
+                $detail->hra = $hra;
+                $detail->conveyance_allowance = $conveyanceAllowance;
+                $detail->medical_allowance = $medicalAllowance;
+                $detail->special_allowance = $specialAllowance;
+                $detail->other_allowance = $otherAllowance;
+                $detail->variable_allowance = $variableAllowance;
+                $detail->gross_salary = $grossSalary;
+
+                $detail->total_days = $totalDays;
+                $detail->leave_taken = $leaveTaken;
+                $detail->net_present = $netPresent;
+                $detail->leave_not_deducted = $leaveNotDeducted;
+                $detail->payable_days = $payableDays;
+
+                $detail->per_day_salary = $perDaySalary;
+                $detail->earned_salary = $earnedSalary;
+
+                $detail->employee_pf = $employeePf;
+                $detail->esi = $esi;
+                $detail->professional_tax = $professionalTax;
+                $detail->tds = $tds;
+                $detail->other_deduction = $otherDeduction;
+                $detail->total_deduction = $totalDeduction;
+
+                $detail->net_salary = $netSalary;
+                $detail->status = 'Pending';
+                $detail->created_by = auth()->id();
+                $detail->updated_by = auth()->id();
+                $detail->save();
+
+                $batchGross += $grossSalary;
+                $batchDeduction += $totalDeduction;
+                $batchNet += $netSalary;
+            }
+
+            $payroll->total_gross_salary = round($batchGross, 2);
+            $payroll->total_deduction = round($batchDeduction, 2);
+            $payroll->total_net_salary = round($batchNet, 2);
+            $payroll->status = 'Generated';
+            $payroll->updated_by = auth()->id();
+            $payroll->save();
+
+            DB::commit();
+
+            Log::info("Payroll Updated: Company ID {$payroll->company_id}, Branch ID {$payroll->branch_id}, Month {$payroll->month}, Year {$payroll->year} by User " . auth()->id());
+
+            session()->flash('success', 'Payroll updated successfully. Previous salary slips invalidated; please generate payslips.');
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Payroll updated successfully. Previous salary slips invalidated.',
+                'redirect' => route('payroll-processing.show', [$payroll->year, $payroll->month]),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to update payroll: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

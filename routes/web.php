@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
     // Employee 
     Route::get('companies/{company}/get-branches', [EmployeeController::class, 'getBranches'])->name('companies.get-branches');
     Route::get('employees/{employee}/pdf', [EmployeeController::class, 'exportPdf'])->name('employees.pdf');
+    Route::post('employees/{employee}/status', [EmployeeController::class, 'updateStatus'])->name('employees.update-status');
     Route::resource('employees', EmployeeController::class);
     Route::resource('employees.salaries', EmployeeSalaryController::class);
 
@@ -62,11 +63,16 @@ Route::middleware('auth')->group(function () {
     Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
     Route::post('attendance/load-employees', [AttendanceController::class, 'loadEmployees'])->name('attendance.loadEmployees');
+    Route::post('attendance/load-summary', [AttendanceController::class, 'loadAttendanceSummary'])->name('attendance.loadAttendanceSummary');
     Route::post('attendance', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::get('attendance/{attendance}', [AttendanceController::class, 'show'])->name('attendance.show');
-    Route::get('attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
-    Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
-    Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+
+    // Attendance Edit/Update/Delete protected by EnsureAttendanceUnlocked middleware
+    Route::middleware([\App\Http\Middleware\EnsureAttendanceUnlocked::class])->group(function () {
+        Route::get('attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
+        Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
+        Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+    });
 
     // Attendance Report
     Route::get('attendance-report', [AttendanceReportController::class, 'index'])->name('attendance-report.index');
@@ -76,14 +82,18 @@ Route::middleware('auth')->group(function () {
     Route::get('attendance-report/export-pdf', [AttendanceReportController::class, 'exportPdf'])->name('attendance-report.export-pdf');
     Route::get('attendance-report/export-excel', [AttendanceReportController::class, 'exportExcel'])->name('attendance-report.export-excel');
 
-    // Payroll
+    // Payroll & Payroll Processing
     Route::get('payroll-processing', [PayrollProcessingController::class, 'index'])->name('payroll-processing.index');
     Route::get('payroll-processing/details/{year}/{month}', [PayrollProcessingController::class, 'show'])->name('payroll-processing.show');
+    Route::post('payroll-processing/generate-payslips/{year}/{month}', [PayrollProcessingController::class, 'generatePayslips'])->name('payroll-processing.generate-payslips');
+
     Route::get('payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
     Route::get('payrolls/create', [PayrollController::class, 'create'])->name('payrolls.create');
     Route::post('payrolls/load-employees', [PayrollController::class, 'loadEmployees'])->name('payrolls.loadEmployees');
     Route::post('payrolls', [PayrollController::class, 'store'])->name('payrolls.store');
     Route::get('payrolls/{payroll}', [PayrollController::class, 'show'])->name('payrolls.show');
+    Route::get('payrolls/{payroll}/edit', [PayrollController::class, 'edit'])->name('payrolls.edit');
+    Route::put('payrolls/{payroll}', [PayrollController::class, 'update'])->name('payrolls.update');
     Route::delete('payrolls/{payroll}', [PayrollController::class, 'destroy'])->name('payrolls.destroy');
     Route::get('payrolls/salary-slip/{detail}', [PayrollController::class, 'salarySlip'])->name('payrolls.salary-slip');
     Route::get('payrolls/salary-slip/{detail}/pdf', [PayrollController::class, 'salarySlipPdf'])->name('payrolls.salary-slip.pdf');
